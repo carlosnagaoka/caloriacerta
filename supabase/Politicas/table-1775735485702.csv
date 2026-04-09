@@ -1,0 +1,5 @@
+﻿Campo,Valor
+Policy name,`Users can upload photos`
+Allowed operation,`INSERT`
+Target roles,`authenticated`
+Policy definition,`(bucket_id = 'meal-photos'::text)`

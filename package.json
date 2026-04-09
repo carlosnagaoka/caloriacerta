@@ -1,0 +1,17 @@
+{
+  "name": "caloriacerta",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "cd apps/web && npm run dev",
+    "build": "cd apps/web && npm run build",
+    "lint": "cd apps/web && npm run lint"
+  },
+  "devDependencies": {
+    "turbo": "^1.11.0"
+  }
+}
