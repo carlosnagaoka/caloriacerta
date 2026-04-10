@@ -92,7 +92,9 @@ export default function DashboardClient({
   selectedDate: string
 }) {
   const router = useRouter()
-  const today = new Date().toISOString().split('T')[0]
+  // Data local do dispositivo (corrige fuso Japão UTC+9)
+  const nowLocal = new Date()
+  const today = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [expandedMeal, setExpandedMeal] = useState<string | null>(null)
 

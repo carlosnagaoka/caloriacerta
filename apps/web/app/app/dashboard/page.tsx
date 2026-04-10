@@ -24,6 +24,8 @@ export default async function DashboardPage({
   }
 
   const params = await searchParams
+  // Se não vier data na URL, usa hoje em UTC (o client envia a data local via URL quando navega)
+  // A data padrão é só o fallback inicial — o DashboardClient já redireciona com ?data=YYYY-MM-DD local
   const selectedDate = params.data || new Date().toISOString().split('T')[0]
 
   // Busca dados com admin (ignora RLS)

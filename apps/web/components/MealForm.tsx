@@ -25,8 +25,13 @@ export default function MealForm({ userId }: { userId: string }) {
   const supabase = createClient()
 
   const [mealType, setMealType] = useState('almoco')
-  const [mealDate, setMealDate] = useState(new Date().toISOString().split('T')[0])
-  const [mealTime, setMealTime] = useState(new Date().toTimeString().slice(0, 5))
+  // Usa data/hora LOCAL do dispositivo (importante para usuários no Japão UTC+9)
+  const now = new Date()
+  const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const localTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+
+  const [mealDate, setMealDate] = useState(localDate)
+  const [mealTime, setMealTime] = useState(localTime)
   const [notes, setNotes] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
