@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  color-scheme: light; /* impede o browser de aplicar dark mode automatico */
 }
 
 @theme inline {
@@ -12,15 +13,25 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* A landing page tem dark mode proprio via classes Tailwind.
+   As paginas do app (/login, /cadastro, /app/*) sao sempre claras. */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Garante que inputs, selects e textareas nunca herdem cor escura do sistema */
+input,
+select,
+textarea {
+  color: #111827;       /* gray-900 */
+  background-color: #ffffff;
+  -webkit-text-fill-color: #111827; /* fix especifico para iOS/Safari dark mode */
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af; /* gray-400 */
+  -webkit-text-fill-color: #9ca3af;
 }
