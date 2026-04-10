@@ -64,9 +64,9 @@ export default function CadastroPage() {
       return
     }
 
-    // 3. Sucesso!
+    // 3. Sucesso! → vai pro onboarding
     console.log('[Browser] Cadastro completo!')
-    router.push('/app/dashboard')
+    router.push('/onboarding')
     router.refresh()
   }
 

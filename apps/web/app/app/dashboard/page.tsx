@@ -29,11 +29,16 @@ export default async function DashboardPage({
       .single(),
     supabase
       .from('meals')
-      .select('*, meal_items(item_name, weight_grams, total_calories)')
+      .select('*, meal_items(item_name, weight_grams, total_calories, carbs_grams, protein_grams, fat_grams)')
       .eq('user_id', user.id)
       .eq('meal_date', selectedDate)
       .order('meal_time', { ascending: true }),
   ])
+
+  // Redirect to onboarding if not completed
+  if (profile && !profile.onboarding_completo) {
+    redirect('/onboarding')
+  }
 
   const diasRestantes = subscription?.ends_at
     ? Math.ceil((new Date(subscription.ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
