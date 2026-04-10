@@ -35,8 +35,11 @@ export default async function DashboardPage({
       .order('meal_time', { ascending: true }),
   ])
 
-  // Redirect to onboarding if not completed
-  if (profile && !profile.onboarding_completo) {
+  // Só redireciona pro onboarding se:
+  // 1. onboarding_completo for explicitamente false (não null)
+  // 2. E o usuário não tiver refeições ainda (conta nova de verdade)
+  const contaNova = profile?.onboarding_completo === false && (!meals || meals.length === 0)
+  if (contaNova) {
     redirect('/onboarding')
   }
 
