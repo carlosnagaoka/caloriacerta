@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation'
 import DashboardClient from './DashboardClient'
 import { computeBehaviorState } from '@/lib/behavior/behavioralEngine'
 import { generateSmartMessage } from '@/lib/behavior/messageEngine'
+import { detectPrimaryPattern } from '@/lib/behavior/patternEngine'
+import { getWeeklyCorrection } from '@/lib/behavior/correctionEngine'
+import { computeICScore } from '@/lib/behavior/icEngine'
 
 // Admin client ignora RLS — necessário pois meals são salvas com service role
 const supabaseAdmin = createAdmin(
@@ -37,6 +40,7 @@ export default async function DashboardPage({
     { data: meals },
     { data: weightLogs },
     { data: recentMeals },
+    { data: mealHistory },
   ] = await Promise.all([
     supabaseAdmin.from('users').select('*').eq('id', user.id).single(),
     supabaseAdmin
@@ -58,13 +62,20 @@ export default async function DashboardPage({
       .eq('user_id', user.id)
       .order('logged_at', { ascending: false })
       .limit(30),
-    // Últimos 30 dias de datas com registro — para BehavioralEngine
+    // meal_date apenas — para BehavioralEngine
     supabaseAdmin
       .from('meals')
       .select('meal_date')
       .eq('user_id', user.id)
       .order('meal_date', { ascending: false })
       .limit(60),
+    // meal_date + meal_type + total_calories — para PatternEngine + ICEngine
+    supabaseAdmin
+      .from('meals')
+      .select('meal_date, meal_type, total_calories')
+      .eq('user_id', user.id)
+      .order('meal_date', { ascending: false })
+      .limit(90),
   ])
 
   // Só redireciona pro onboarding se conta nova sem refeições
@@ -81,12 +92,31 @@ export default async function DashboardPage({
   // "today" = selectedDate quando o usuário abriu o dashboard sem parâmetros
   // (o DashboardClient envia ?data=YYYY-MM-DD local, mas no first load usamos UTC)
   const recentMealDates = (recentMeals ?? []).map((m: any) => m.meal_date as string)
+  const mealRecords = (mealHistory ?? []) as { meal_date: string; meal_type: string; total_calories: number }[]
+
+  // ── Engines — todos server-side, zero round-trip ─────────────────────────
   const behaviorState = computeBehaviorState(
     recentMealDates,
     profile?.ic_streak_days ?? 0,
     selectedDate
   )
   const smartMessage = generateSmartMessage(behaviorState, user.id)
+  const patternInsight = detectPrimaryPattern(mealRecords, selectedDate)
+  const correction = getWeeklyCorrection(patternInsight.type, user.id)
+  const icResult = computeICScore(
+    mealRecords,
+    profile?.daily_calorie_goal ?? 2000,
+    selectedDate
+  )
+
+  // Atualiza IC no perfil silenciosamente (fire-and-forget)
+  if (icResult.score !== profile?.ic_score) {
+    supabaseAdmin
+      .from('users')
+      .update({ ic_score: icResult.score })
+      .eq('id', user.id)
+      .then(() => {}) // não bloqueia o render
+  }
 
   return (
     <DashboardClient
@@ -98,6 +128,9 @@ export default async function DashboardPage({
       weightLogs={weightLogs || []}
       smartMessage={smartMessage}
       behaviorConsistencyPct={behaviorState.consistencyPct}
+      patternInsight={patternInsight}
+      correction={correction}
+      icResult={icResult}
     />
   )
 }

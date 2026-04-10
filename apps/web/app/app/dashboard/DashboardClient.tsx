@@ -6,7 +6,12 @@ import { excluirRefeicao } from '@/app/app/refeicao/actions'
 import WeightWidget from '@/components/WeightWidget'
 import ProjecaoCard from '@/components/ProjecaoCard'
 import SmartMessageCard from '@/components/SmartMessageCard'
+import CorrectionCard from '@/components/CorrectionCard'
+import PatternInsightCard from '@/components/PatternInsightCard'
 import type { SmartMessage } from '@/lib/behavior/messageEngine'
+import type { PatternInsight } from '@/lib/behavior/patternEngine'
+import type { Correction } from '@/lib/behavior/correctionEngine'
+import type { ICResult } from '@/lib/behavior/icEngine'
 
 const mealTypeLabel: Record<string, string> = {
   cafe_da_manha: 'Café da Manhã',
@@ -100,6 +105,9 @@ export default function DashboardClient({
   weightLogs: { logged_at: string; weight_kg: number }[]
   smartMessage: SmartMessage
   behaviorConsistencyPct: number
+  patternInsight: PatternInsight
+  correction: Correction
+  icResult: ICResult
 }) {
   const router = useRouter()
   // Data local do dispositivo (corrige fuso Japão UTC+9)
@@ -107,6 +115,9 @@ export default function DashboardClient({
   const today = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [expandedMeal, setExpandedMeal] = useState<string | null>(null)
+
+  // Usa IC calculado pelo engine (mais preciso que o armazenado no perfil)
+  const icScore = icResult.score
 
   const handleDelete = async (mealId: string) => {
     if (!confirm('Excluir esta refeição?')) return
@@ -272,17 +283,37 @@ export default function DashboardClient({
           </div>
         </div>
 
-        {/* ── IC stats ────────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-            <p className="text-xs text-gray-400 mb-1">Índice IC</p>
-            <p className="text-3xl font-bold text-green-600">{profile?.ic_score || 0}</p>
+        {/* ── Missão da semana (CorrectionCard) ───────────────────────────────
+             Abaixo do anel: uma correção, específica, acionável */}
+        {isToday && <CorrectionCard correction={correction} />}
+
+        {/* ── IC + Streak (reformulado) ────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div className="grid grid-cols-2 gap-4">
+            {/* IC com interpretação */}
+            <div className="text-center">
+              <p className="text-xs text-gray-400 mb-1">Índice IC</p>
+              <p className="text-3xl font-bold text-green-600">{icScore}</p>
+              <p className="text-xs font-semibold text-gray-500 mt-0.5">{icResult.label}</p>
+            </div>
+            {/* Streak */}
+            <div className="text-center">
+              <p className="text-xs text-gray-400 mb-1">Streak 🔥</p>
+              <p className="text-3xl font-bold text-gray-900">
+                {profile?.ic_streak_days || 0}
+                <span className="text-base font-normal text-gray-400">d</span>
+              </p>
+            </div>
           </div>
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-            <p className="text-xs text-gray-400 mb-1">Streak 🔥</p>
-            <p className="text-3xl font-bold text-gray-900">{profile?.ic_streak_days || 0}<span className="text-base font-normal text-gray-400">d</span></p>
-          </div>
+          {/* Frase contextual do IC */}
+          <p className="text-xs text-gray-400 text-center mt-3 pt-3 border-t border-gray-50 leading-relaxed">
+            {icResult.labelDetail}
+          </p>
         </div>
+
+        {/* ── Padrão detectado (PatternInsightCard) ───────────────────────────
+             Abaixo do IC: um padrão, positivo ou problemático */}
+        {isToday && <PatternInsightCard pattern={patternInsight} />}
 
         {/* ── Peso diário (A) ─────────────────────────────────────────────────── */}
         {isToday && (
