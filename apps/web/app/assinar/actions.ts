@@ -67,8 +67,7 @@ export async function criarCheckoutSession(
           plano,
         },
       },
-      // Deixa o Stripe escolher os métodos automaticamente por país/moeda
-      automatic_payment_methods: { enabled: true },
+      payment_method_types: ['card'],
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
       locale: 'pt',
