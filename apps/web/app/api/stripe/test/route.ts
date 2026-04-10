@@ -4,12 +4,11 @@ import { stripe } from '@/lib/stripe'
 export async function GET() {
   try {
     // Testa se a chave Stripe está funcionando
-    const account = await stripe.accounts.retrieve()
+    const balance = await stripe.balance.retrieve()
     return NextResponse.json({
       ok: true,
-      accountId: account.id,
-      country: account.country,
-      currency: account.default_currency,
+      available: balance.available,
+      currency: balance.available[0]?.currency,
     })
   } catch (err: any) {
     return NextResponse.json({

@@ -71,7 +71,7 @@ export async function criarCheckoutSession(
       automatic_payment_methods: { enabled: true },
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      locale: 'pt-BR',
+      locale: 'pt',
     })
 
     return { url: session.url! }
