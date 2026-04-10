@@ -130,7 +130,7 @@ export function computeICScore(
       return 0
     })
     aderencia = Math.round(
-      adherenceScores.reduce((a, b) => a + b, 0) / adherenceScores.length
+      (adherenceScores as number[]).reduce((a, b) => a + b, 0) / adherenceScores.length
     )
   }
 
