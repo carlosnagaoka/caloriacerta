@@ -94,6 +94,7 @@ export default function OnboardingWizard({ userId, initialName }: { userId: stri
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [step, setStep] = useState<Step>('welcome')
+  const [saveError, setSaveError] = useState('')
   const [form, setForm] = useState<FormState>({
     name: initialName || '',
     objetivo: '',
@@ -126,26 +127,35 @@ export default function OnboardingWizard({ userId, initialName }: { userId: stri
 
   const handleFinish = () => {
     setStep('loading')
+    setSaveError('')
     startTransition(async () => {
-      const result = await salvarOnboarding({
-        userId,
-        name: form.name,
-        objetivo: form.objetivo,
-        sexo: form.sexo,
-        idade: parseInt(form.idade) || 30,
-        altura_cm: parseInt(form.altura_cm) || 170,
-        peso_kg: parseFloat(form.peso_kg) || 70,
-        peso_alvo_kg: parseFloat(form.peso_alvo_kg) || 65,
-        nivel_atividade: form.nivel_atividade,
-        preocupacoes_saude: form.preocupacoes_saude,
-        prazo_semanas: parseInt(form.prazo_semanas) || 12,
-        preferencia_alimentar: form.preferencia_alimentar,
-        refeicoes_por_dia: parseInt(form.refeicoes_por_dia) || 3,
-        horario_acordar: form.horario_acordar,
-        horario_dormir: form.horario_dormir,
-      })
-      if (result.success) {
-        router.push('/app/dashboard')
+      try {
+        const result = await salvarOnboarding({
+          userId,
+          name: form.name,
+          objetivo: form.objetivo,
+          sexo: form.sexo,
+          idade: parseInt(form.idade) || 30,
+          altura_cm: parseInt(form.altura_cm) || 170,
+          peso_kg: parseFloat(form.peso_kg) || 70,
+          peso_alvo_kg: parseFloat(form.peso_alvo_kg) || 65,
+          nivel_atividade: form.nivel_atividade,
+          preocupacoes_saude: form.preocupacoes_saude,
+          prazo_semanas: parseInt(form.prazo_semanas) || 12,
+          preferencia_alimentar: form.preferencia_alimentar,
+          refeicoes_por_dia: parseInt(form.refeicoes_por_dia) || 3,
+          horario_acordar: form.horario_acordar,
+          horario_dormir: form.horario_dormir,
+        })
+        if (result.success) {
+          router.push('/app/dashboard')
+        } else {
+          setSaveError(result.error || 'Erro ao salvar. Tente novamente.')
+          setStep('resumo')
+        }
+      } catch (err: any) {
+        setSaveError(err.message || 'Erro inesperado. Tente novamente.')
+        setStep('resumo')
       }
     })
   }
@@ -543,6 +553,11 @@ export default function OnboardingWizard({ userId, initialName }: { userId: stri
                 <div className="text-sm opacity-90">kcal / dia</div>
               </div>
             </div>
+            {saveError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                ⚠️ {saveError}
+              </div>
+            )}
             <button
               onClick={handleFinish}
               disabled={isPending}
