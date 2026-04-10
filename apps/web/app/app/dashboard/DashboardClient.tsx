@@ -164,14 +164,14 @@ export default function DashboardClient({
           </div>
           <div className="flex items-center gap-3">
             {subscription?.status === 'trial' && diasRestantes > 0 && (
-              <a href="/assinar" className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium hover:bg-amber-200 transition-colors">
+              <a href="/app/plano" className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium hover:bg-amber-200 transition-colors">
                 Trial: {diasRestantes}d restantes
               </a>
             )}
-            {(subscription?.status === 'ativo') && (
-              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+            {subscription?.status === 'ativo' && (
+              <a href="/app/plano" className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium hover:bg-green-200 transition-colors">
                 {subscription?.plans?.name || 'Premium'} ✓
-              </span>
+              </a>
             )}
             <form action="/logout" method="post">
               <button type="submit" className="p-2 text-gray-400 hover:text-gray-600">
