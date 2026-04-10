@@ -53,10 +53,23 @@ export default function AssinarPage() {
   const [moeda, setMoeda] = useState<Moeda>('brl')
   const [periodo, setPeriodo] = useState<Periodo>('mensal')
   const [loading, setLoading] = useState<string | null>(null)
+  const [erro, setErro] = useState('')
 
   const handleAssinar = async (plano: 'basico' | 'premium') => {
     setLoading(plano)
-    await criarCheckoutSession(plano, moeda, periodo)
+    setErro('')
+    try {
+      const result = await criarCheckoutSession(plano, moeda, periodo)
+      if (result.url) {
+        window.location.href = result.url  // redirect confiável via browser
+      } else {
+        setErro(result.error || 'Erro ao iniciar pagamento. Tente novamente.')
+        setLoading(null)
+      }
+    } catch (err: any) {
+      setErro('Erro inesperado. Tente novamente.')
+      setLoading(null)
+    }
   }
 
   return (
@@ -189,6 +202,13 @@ export default function AssinarPage() {
             )
           })}
         </div>
+
+        {/* Erro */}
+        {erro && (
+          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm text-center">
+            ⚠️ {erro}
+          </div>
+        )}
 
         {/* Garantias */}
         <div className="mt-10 grid grid-cols-3 gap-4 text-center">
