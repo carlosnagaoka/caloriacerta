@@ -29,22 +29,29 @@ export default async function DashboardPage({
   const selectedDate = params.data || new Date().toISOString().split('T')[0]
 
   // Busca dados com admin (ignora RLS)
-  const [{ data: profile }, { data: subscription }, { data: meals }] = await Promise.all([
-    supabaseAdmin.from('users').select('*').eq('id', user.id).single(),
-    supabaseAdmin
-      .from('subscriptions')
-      .select('*, plans(name)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single(),
-    supabaseAdmin
-      .from('meals')
-      .select('*, meal_items(item_name, weight_grams, total_calories)')
-      .eq('user_id', user.id)
-      .eq('meal_date', selectedDate)
-      .order('meal_time', { ascending: true }),
-  ])
+  const [{ data: profile }, { data: subscription }, { data: meals }, { data: weightLogs }] =
+    await Promise.all([
+      supabaseAdmin.from('users').select('*').eq('id', user.id).single(),
+      supabaseAdmin
+        .from('subscriptions')
+        .select('*, plans(name)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single(),
+      supabaseAdmin
+        .from('meals')
+        .select('*, meal_items(item_name, weight_grams, total_calories)')
+        .eq('user_id', user.id)
+        .eq('meal_date', selectedDate)
+        .order('meal_time', { ascending: true }),
+      supabaseAdmin
+        .from('weight_logs')
+        .select('logged_at, weight_kg')
+        .eq('user_id', user.id)
+        .order('logged_at', { ascending: false })
+        .limit(30),
+    ])
 
   // Só redireciona pro onboarding se conta nova sem refeições
   const contaNova = profile?.onboarding_completo === false && (!meals || meals.length === 0)
@@ -63,6 +70,7 @@ export default async function DashboardPage({
       diasRestantes={diasRestantes}
       meals={meals || []}
       selectedDate={selectedDate}
+      weightLogs={weightLogs || []}
     />
   )
 }

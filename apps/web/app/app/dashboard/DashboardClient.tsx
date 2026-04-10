@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { excluirRefeicao } from '@/app/app/refeicao/actions'
+import WeightWidget from '@/components/WeightWidget'
+import ProjecaoCard from '@/components/ProjecaoCard'
 
 const mealTypeLabel: Record<string, string> = {
   cafe_da_manha: 'Café da Manhã',
@@ -84,12 +86,14 @@ export default function DashboardClient({
   diasRestantes,
   meals,
   selectedDate,
+  weightLogs,
 }: {
   profile: any
   subscription: any
   diasRestantes: number
   meals: any[]
   selectedDate: string
+  weightLogs: { logged_at: string; weight_kg: number }[]
 }) {
   const router = useRouter()
   // Data local do dispositivo (corrige fuso Japão UTC+9)
@@ -264,6 +268,20 @@ export default function DashboardClient({
             <p className="text-3xl font-bold text-gray-900">{profile?.ic_streak_days || 0}<span className="text-base font-normal text-gray-400">d</span></p>
           </div>
         </div>
+
+        {/* ── Peso diário (A) ─────────────────────────────────────────────────── */}
+        {isToday && (
+          <WeightWidget
+            userId={profile?.id}
+            pesoInicial={profile?.weight_kg || 70}
+            pesoMeta={profile?.peso_alvo_kg ?? null}
+            pesos={weightLogs}
+            today={today}
+          />
+        )}
+
+        {/* ── Projeção de peso (B + C) ────────────────────────────────────────── */}
+        <ProjecaoCard profile={profile} pesos={weightLogs} />
 
         {/* ── Refeições ───────────────────────────────────────────────────────── */}
         <div>
