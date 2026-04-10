@@ -157,9 +157,14 @@ export default function DashboardClient({
             <h1 className="text-xl font-bold text-gray-900">{profile?.name || 'Usuário'} 👋</h1>
           </div>
           <div className="flex items-center gap-3">
-            {subscription?.status === 'trial' && (
+            {subscription?.status === 'trial' && diasRestantes > 0 && (
+              <a href="/assinar" className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium hover:bg-amber-200 transition-colors">
+                Trial: {diasRestantes}d restantes
+              </a>
+            )}
+            {(subscription?.status === 'ativo') && (
               <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                Trial: {diasRestantes}d
+                {subscription?.plans?.name || 'Premium'} ✓
               </span>
             )}
             <form action="/logout" method="post">
@@ -174,6 +179,34 @@ export default function DashboardClient({
       </div>
 
       <div className="max-w-lg mx-auto px-4 pt-5 space-y-5">
+        {/* ── Banner trial expirando ─────────────────────────────────────────── */}
+        {subscription?.status === 'trial' && diasRestantes <= 3 && diasRestantes > 0 && (
+          <a href="/assinar" className="block bg-amber-500 text-white rounded-2xl px-5 py-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-sm">⚡ Seu trial vence em {diasRestantes} dia{diasRestantes > 1 ? 's' : ''}!</p>
+                <p className="text-xs opacity-90 mt-0.5">Assine agora e não perca seu histórico</p>
+              </div>
+              <span className="bg-white text-amber-600 font-bold text-xs px-3 py-1.5 rounded-lg whitespace-nowrap">
+                Ver planos →
+              </span>
+            </div>
+          </a>
+        )}
+        {subscription?.status === 'trial' && diasRestantes <= 0 && (
+          <a href="/assinar" className="block bg-red-500 text-white rounded-2xl px-5 py-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-sm">🔒 Seu período gratuito expirou</p>
+                <p className="text-xs opacity-90 mt-0.5">Assine para continuar usando o CaloriaCerta</p>
+              </div>
+              <span className="bg-white text-red-600 font-bold text-xs px-3 py-1.5 rounded-lg whitespace-nowrap">
+                Assinar →
+              </span>
+            </div>
+          </a>
+        )}
+
         {/* ── Date nav ────────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100">
           <button onClick={goToPrevDay} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 text-lg font-bold">
