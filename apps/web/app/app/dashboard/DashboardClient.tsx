@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { excluirRefeicao } from '@/app/app/refeicao/actions'
 import WeightWidget from '@/components/WeightWidget'
 import ProjecaoCard from '@/components/ProjecaoCard'
+import SmartMessageCard from '@/components/SmartMessageCard'
+import type { SmartMessage } from '@/lib/behavior/messageEngine'
 
 const mealTypeLabel: Record<string, string> = {
   cafe_da_manha: 'Café da Manhã',
@@ -87,6 +89,8 @@ export default function DashboardClient({
   meals,
   selectedDate,
   weightLogs,
+  smartMessage,
+  behaviorConsistencyPct,
 }: {
   profile: any
   subscription: any
@@ -94,6 +98,8 @@ export default function DashboardClient({
   meals: any[]
   selectedDate: string
   weightLogs: { logged_at: string; weight_kg: number }[]
+  smartMessage: SmartMessage
+  behaviorConsistencyPct: number
 }) {
   const router = useRouter()
   // Data local do dispositivo (corrige fuso Japão UTC+9)
@@ -240,6 +246,15 @@ export default function DashboardClient({
           <button onClick={() => handleDateChange(today)} className="text-xs text-green-600 hover:underline -mt-3 ml-1">
             Ir para hoje
           </button>
+        )}
+
+        {/* ── Smart Message (coração emocional do dashboard) ───────────────────
+             Só aparece ao ver o dia de hoje — não faz sentido em datas passadas */}
+        {isToday && (
+          <SmartMessageCard
+            message={smartMessage}
+            consistencyPct={behaviorConsistencyPct}
+          />
         )}
 
         {/* ── Calorie ring + macros ───────────────────────────────────────────── */}
