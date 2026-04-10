@@ -134,6 +134,7 @@ export default async function DashboardPage({
       correction={correction}
       icResult={icResult}
       honestyCheck={honestyCheck}
+      temPlano={!!(profile?.plano_nutricional)}
     />
   )
 }

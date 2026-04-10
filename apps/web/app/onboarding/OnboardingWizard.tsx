@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { salvarOnboarding } from './actions'
+import { gerarPlanoIA } from '@/app/app/plano/actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Step =
@@ -148,6 +149,8 @@ export default function OnboardingWizard({ userId, initialName }: { userId: stri
           horario_dormir: form.horario_dormir,
         })
         if (result.success) {
+          // Gera plano IA em background — não bloqueia o redirect
+          gerarPlanoIA(userId).catch(() => {})
           router.push('/app/dashboard')
         } else {
           setSaveError(result.error || 'Erro ao salvar. Tente novamente.')
