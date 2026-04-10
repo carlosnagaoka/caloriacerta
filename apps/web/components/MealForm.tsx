@@ -262,7 +262,7 @@ export default function MealForm({ userId }: { userId: string }) {
           <select
             value={mealType}
             onChange={(e) => setMealType(e.target.value)}
-            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
           >
             <option value="cafe_da_manha">Café da Manhã</option>
             <option value="almoco">Almoço</option>
@@ -278,7 +278,7 @@ export default function MealForm({ userId }: { userId: string }) {
             type="date"
             value={mealDate}
             onChange={(e) => setMealDate(e.target.value)}
-            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
           />
         </div>
 
@@ -288,7 +288,7 @@ export default function MealForm({ userId }: { userId: string }) {
             type="time"
             value={mealTime}
             onChange={(e) => setMealTime(e.target.value)}
-            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
           />
         </div>
       </div>
@@ -355,7 +355,7 @@ export default function MealForm({ userId }: { userId: string }) {
             onChange={(e) => handleSearch(e.target.value)}
             onFocus={() => searchTerm.length >= 2 && setShowSearch(true)}
             placeholder="Buscar alimento (ex: arroz, frango)..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
           />
           <button
             type="button"
@@ -407,7 +407,7 @@ export default function MealForm({ userId }: { userId: string }) {
                       value={item.name}
                       onChange={(e) => updateItemName(item.id, e.target.value)}
                       onBlur={() => setTimeout(() => setItemSearchVisible(prev => ({ ...prev, [item.id]: false })), 150)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-medium"
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-medium text-gray-900 bg-white"
                     />
                     {itemSearchVisible[item.id] && (itemSearchResults[item.id] || []).length > 0 && (
                       <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded shadow-lg max-h-40 overflow-auto">
@@ -431,7 +431,7 @@ export default function MealForm({ userId }: { userId: string }) {
                         type="number"
                         value={item.caloriesPer100g}
                         onChange={(e) => updateItemCalories(item.id, parseFloat(e.target.value) || 0)}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded text-xs"
+                        className="w-20 px-2 py-1 border border-gray-300 rounded text-xs text-gray-900 bg-white"
                         placeholder="kcal/100g"
                       />
                       <span className="text-xs text-gray-500">kcal/100g</span>
@@ -443,7 +443,7 @@ export default function MealForm({ userId }: { userId: string }) {
                       type="number"
                       value={item.weight}
                       onChange={(e) => updateItemWeight(item.id, parseFloat(e.target.value) || 0)}
-                      className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
+                      className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-gray-900 bg-white"
                       min="0"
                       step="1"
                     />
@@ -481,7 +481,7 @@ export default function MealForm({ userId }: { userId: string }) {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
-          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
           placeholder="Ex: Comi fora, porção grande, etc."
         />
       </div>
