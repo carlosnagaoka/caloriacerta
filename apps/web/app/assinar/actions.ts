@@ -70,7 +70,6 @@ export async function criarCheckoutSession(
       payment_method_types: ['card'],
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
-      locale: 'pt',
     })
 
     return { url: session.url! }

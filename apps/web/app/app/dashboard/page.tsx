@@ -40,7 +40,7 @@ export default async function DashboardPage({
       .single(),
     supabaseAdmin
       .from('meals')
-      .select('*, meal_items(item_name, weight_grams, total_calories, carbs_grams, protein_grams, fat_grams)')
+      .select('*, meal_items(item_name, weight_grams, total_calories)')
       .eq('user_id', user.id)
       .eq('meal_date', selectedDate)
       .order('meal_time', { ascending: true }),
