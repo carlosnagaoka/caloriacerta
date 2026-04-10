@@ -155,6 +155,23 @@ export async function excluirRefeicao(mealId: string) {
   }
 }
 
+export async function registrarTrigger(mealId: string, triggerType: string) {
+  try {
+    const { error } = await supabaseAdmin
+      .from('meals')
+      .update({ trigger_type: triggerType })
+      .eq('id', mealId)
+
+    if (error) {
+      console.error('[Refeicao Action] Erro ao registrar trigger:', error)
+      return { success: false }
+    }
+    return { success: true }
+  } catch {
+    return { success: false }
+  }
+}
+
 export async function buscarAlimentos(busca: string) {
   const { data, error } = await supabaseAdmin
     .from('foods')

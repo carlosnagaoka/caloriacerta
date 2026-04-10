@@ -7,6 +7,7 @@ import { generateSmartMessage } from '@/lib/behavior/messageEngine'
 import { detectPrimaryPattern } from '@/lib/behavior/patternEngine'
 import { getWeeklyCorrection } from '@/lib/behavior/correctionEngine'
 import { computeICScore } from '@/lib/behavior/icEngine'
+import { checkMealHonesty } from '@/lib/behavior/honestyEngine'
 
 // Admin client ignora RLS — necessário pois meals são salvas com service role
 const supabaseAdmin = createAdmin(
@@ -108,6 +109,7 @@ export default async function DashboardPage({
     profile?.daily_calorie_goal ?? 2000,
     selectedDate
   )
+  const honestyCheck = checkMealHonesty(mealRecords, selectedDate)
 
   // Atualiza IC no perfil silenciosamente (fire-and-forget)
   if (icResult.score !== profile?.ic_score) {
@@ -131,6 +133,7 @@ export default async function DashboardPage({
       patternInsight={patternInsight}
       correction={correction}
       icResult={icResult}
+      honestyCheck={honestyCheck}
     />
   )
 }

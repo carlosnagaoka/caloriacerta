@@ -35,3 +35,12 @@ textarea::placeholder {
   color: #9ca3af; /* gray-400 */
   -webkit-text-fill-color: #9ca3af;
 }
+
+/* Modal slide-up animation (MealTriggerModal) */
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.animate-slide-up {
+  animation: slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1) both;
+}

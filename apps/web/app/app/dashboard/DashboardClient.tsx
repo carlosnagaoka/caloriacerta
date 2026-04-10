@@ -12,6 +12,7 @@ import type { SmartMessage } from '@/lib/behavior/messageEngine'
 import type { PatternInsight } from '@/lib/behavior/patternEngine'
 import type { Correction } from '@/lib/behavior/correctionEngine'
 import type { ICResult } from '@/lib/behavior/icEngine'
+import type { HonestyCheck } from '@/lib/behavior/honestyEngine'
 
 const mealTypeLabel: Record<string, string> = {
   cafe_da_manha: 'Café da Manhã',
@@ -108,6 +109,7 @@ export default function DashboardClient({
   patternInsight: PatternInsight
   correction: Correction
   icResult: ICResult
+  honestyCheck: HonestyCheck | null
 }) {
   const router = useRouter()
   // Data local do dispositivo (corrige fuso Japão UTC+9)
@@ -328,6 +330,20 @@ export default function DashboardClient({
 
         {/* ── Projeção de peso (B + C) ────────────────────────────────────────── */}
         <ProjecaoCard profile={profile} pesos={weightLogs} />
+
+        {/* ── Honesty nudge ────────────────────────────────────────────────────
+             Pergunta leve, nunca acusação. Aparece apenas quando há incoerência */}
+        {isToday && honestyCheck && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+            <span className="text-2xl flex-shrink-0">🤔</span>
+            <div>
+              <p className="text-sm font-semibold text-amber-800">{honestyCheck.message}</p>
+              {honestyCheck.detail && (
+                <p className="text-xs text-amber-600 mt-1">{honestyCheck.detail}</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Refeições ───────────────────────────────────────────────────────── */}
         <div>

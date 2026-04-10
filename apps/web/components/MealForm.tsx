@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { salvarRefeicao, buscarAlimentos } from '@/app/app/refeicao/actions'
+import MealTriggerModal from '@/components/MealTriggerModal'
 import { analyzeFoodImage } from '@/app/app/refeicao/analyze-image'
 import { estimarCalorias } from '@/app/app/refeicao/estimate-calories'
 import { createClient } from '@/lib/supabase-client'
@@ -48,6 +49,7 @@ export default function MealForm({ userId }: { userId: string }) {
   const [itemSearchVisible, setItemSearchVisible] = useState<Record<string, boolean>>({})
 
   const [loading, setLoading] = useState(false)
+  const [triggerModal, setTriggerModal] = useState<{ mealId: string; totalCalories: number } | null>(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false)
   const [estimatingId, setEstimatingId] = useState<string | null>(null)
@@ -262,11 +264,30 @@ export default function MealForm({ userId }: { userId: string }) {
     }
 
     console.log('Refeição salva! Total:', result.totalCalories)
+    setLoading(false)
+
+    // Mostra modal de trigger comportamental antes de redirecionar
+    setTriggerModal({
+      mealId: result.mealId,
+      totalCalories: result.totalCalories ?? 0,
+    })
+  }
+
+  const handleTriggerClose = () => {
+    setTriggerModal(null)
     router.push('/app/dashboard')
     router.refresh()
   }
 
   return (
+    <>
+    {triggerModal && (
+      <MealTriggerModal
+        mealId={triggerModal.mealId}
+        totalCalories={triggerModal.totalCalories}
+        onClose={handleTriggerClose}
+      />
+    )}
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Erro */}
       {error && (
@@ -548,5 +569,6 @@ export default function MealForm({ userId }: { userId: string }) {
         </a>
       </div>
     </form>
+    </>
   )
 }
