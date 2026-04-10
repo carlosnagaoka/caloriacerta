@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { salvarRefeicao, buscarAlimentos } from '@/app/app/refeicao/actions'
 import { analyzeFoodImage } from '@/app/app/refeicao/analyze-image'
+import { estimarCalorias } from '@/app/app/refeicao/estimate-calories'
 import { createClient } from '@/lib/supabase-client'
 import dynamic from 'next/dynamic'
 import type { FoodFromBarcode } from '@/app/app/refeicao/barcode-lookup'
@@ -49,6 +50,7 @@ export default function MealForm({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false)
+  const [estimatingId, setEstimatingId] = useState<string | null>(null)
   const [showScanner, setShowScanner] = useState(false)
   const [error, setError] = useState('')
 
@@ -167,6 +169,17 @@ export default function MealForm({ userId }: { userId: string }) {
       }
       return item
     }))
+  }
+
+  // Estimar calorias via IA pelo nome do alimento
+  const handleEstimarCalorias = async (id: string, nome: string) => {
+    if (!nome.trim()) return
+    setEstimatingId(id)
+    const result = await estimarCalorias(nome)
+    if (result.caloriesPer100g > 0) {
+      updateItemCalories(id, result.caloriesPer100g)
+    }
+    setEstimatingId(null)
   }
 
   // Atualizar nome do item e buscar sugestões no banco
@@ -437,16 +450,36 @@ export default function MealForm({ userId }: { userId: string }) {
                     )}
 
                     {/* Campo editável para calorias/100g */}
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <input
                         type="number"
-                        value={item.caloriesPer100g}
+                        value={item.caloriesPer100g || ''}
                         onChange={(e) => updateItemCalories(item.id, parseFloat(e.target.value) || 0)}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded text-xs text-gray-900 bg-white"
-                        placeholder="kcal/100g"
+                        className={`w-20 px-2 py-1 border rounded text-xs text-gray-900 bg-white ${
+                          item.caloriesPer100g === 0
+                            ? 'border-red-400 ring-1 ring-red-300'
+                            : 'border-gray-300'
+                        }`}
+                        placeholder="0"
+                        min="0"
                       />
                       <span className="text-xs text-gray-500">kcal/100g</span>
+                      {item.caloriesPer100g === 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleEstimarCalorias(item.id, item.name)}
+                          disabled={estimatingId === item.id}
+                          className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 disabled:opacity-50 flex items-center gap-1"
+                        >
+                          {estimatingId === item.id ? '⏳ Estimando...' : '🤖 Estimar'}
+                        </button>
+                      )}
                     </div>
+                    {item.caloriesPer100g === 0 && estimatingId !== item.id && (
+                      <p className="text-xs text-red-500 mt-0.5">
+                        ⚠️ Digite as calorias ou clique em 🤖 Estimar
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
