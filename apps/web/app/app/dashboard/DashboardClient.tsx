@@ -97,6 +97,11 @@ export default function DashboardClient({
   weightLogs,
   smartMessage,
   behaviorConsistencyPct,
+  patternInsight,
+  correction,
+  icResult,
+  honestyCheck,
+  temPlano,
 }: {
   profile: any
   subscription: any
