@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { criarPortalSession } from './actions'
+import PlanoPersonalizado from '@/components/PlanoPersonalizado'
+import type { PlanoNutricional, PlanoAtividades } from './actions'
 
 const RECURSOS = [
   {
@@ -75,6 +77,10 @@ export default function PlanoClient({
   totalRefeicoes,
   progressoPeso,
   userId,
+  planoNutricional,
+  planoAtividades,
+  notasNutricionista,
+  planoGeradoEm,
 }: {
   profile: any
   subscription: any
@@ -83,6 +89,10 @@ export default function PlanoClient({
   totalRefeicoes: number
   progressoPeso: number | null
   userId: string
+  planoNutricional: PlanoNutricional | null
+  planoAtividades: PlanoAtividades | null
+  notasNutricionista: string | null
+  planoGeradoEm: string | null
 }) {
   const [loadingPortal, setLoadingPortal] = useState(false)
   const [portalError, setPortalError] = useState('')
@@ -177,6 +187,21 @@ export default function PlanoClient({
               </div>
             </div>
           )}
+        </div>
+
+        {/* ── Plano personalizado (cardápio + atividades) ──────────────────── */}
+        <div>
+          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3 px-1">
+            Seu plano
+          </p>
+          <PlanoPersonalizado
+            userId={userId}
+            nomeUsuario={profile?.name || 'você'}
+            planoNutricional={planoNutricional}
+            planoAtividades={planoAtividades}
+            notasNutricionista={notasNutricionista}
+            planoGeradoEm={planoGeradoEm}
+          />
         </div>
 
         {/* ── O que você tem acesso ────────────────────────────────────────── */}

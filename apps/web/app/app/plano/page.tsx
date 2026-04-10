@@ -23,7 +23,11 @@ export default async function PlanoPage() {
     { count: totalRefeicoes },
     { data: weightLogs },
   ] = await Promise.all([
-    supabaseAdmin.from('users').select('*').eq('id', user.id).single(),
+    supabaseAdmin
+      .from('users')
+      .select('*, plano_nutricional, plano_atividades, notas_nutricionista, plano_gerado_em')
+      .eq('id', user.id)
+      .single(),
     supabaseAdmin
       .from('subscriptions')
       .select('*, plans(name, slug)')
@@ -76,6 +80,10 @@ export default async function PlanoPage() {
       totalRefeicoes={totalRefeicoes || 0}
       progressoPeso={progressoPeso}
       userId={user.id}
+      planoNutricional={profile?.plano_nutricional ?? null}
+      planoAtividades={profile?.plano_atividades ?? null}
+      notasNutricionista={profile?.notas_nutricionista ?? null}
+      planoGeradoEm={profile?.plano_gerado_em ?? null}
     />
   )
 }
