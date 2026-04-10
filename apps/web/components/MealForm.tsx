@@ -17,6 +17,7 @@ interface MealItem {
   weight: number
   caloriesPer100g: number
   totalCalories: number
+  country?: string
 }
 
 export default function MealForm({ userId }: { userId: string }) {
@@ -196,6 +197,7 @@ export default function MealForm({ userId }: { userId: string }) {
       weight: 100,
       caloriesPer100g: food.caloriesPer100g,
       totalCalories: food.caloriesPer100g,
+      country: food.country,
     }
     setItems((prev) => [...prev, newItem])
   }
@@ -402,6 +404,10 @@ export default function MealForm({ userId }: { userId: string }) {
               <div key={item.id} className="flex flex-col gap-2 bg-white p-3 rounded border">
                 <div className="flex items-center gap-3">
                   <div className="flex-1 relative">
+                    <div className="flex items-center gap-1 mb-0.5">
+                      {item.country === 'JP' && <span title="Produto japonês">🇯🇵</span>}
+                      {item.country === 'BR' && <span title="Produto brasileiro">🇧🇷</span>}
+                    </div>
                     <input
                       type="text"
                       value={item.name}
