@@ -8,6 +8,7 @@ import ProjecaoCard from '@/components/ProjecaoCard'
 import SmartMessageCard from '@/components/SmartMessageCard'
 import CorrectionCard from '@/components/CorrectionCard'
 import PatternInsightCard from '@/components/PatternInsightCard'
+import EditMealModal from '@/components/EditMealModal'
 import type { SmartMessage } from '@/lib/behavior/messageEngine'
 import type { PatternInsight } from '@/lib/behavior/patternEngine'
 import type { Correction } from '@/lib/behavior/correctionEngine'
@@ -123,6 +124,7 @@ export default function DashboardClient({
   const today = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [expandedMeal, setExpandedMeal] = useState<string | null>(null)
+  const [editingMeal, setEditingMeal] = useState<any | null>(null)
 
   // Usa IC calculado pelo engine (mais preciso que o armazenado no perfil)
   const icScore = icResult.score
@@ -179,6 +181,15 @@ export default function DashboardClient({
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
 
   return (
+    <>
+    {editingMeal && (
+      <EditMealModal
+        mealId={editingMeal.id}
+        mealLabel={`${mealTypeLabel[editingMeal.meal_type] || editingMeal.meal_type} · ${editingMeal.meal_time?.slice(0, 5) || ''}`}
+        initialItems={editingMeal.meal_items || []}
+        onClose={() => { setEditingMeal(null); router.refresh() }}
+      />
+    )}
     <main className="bg-gray-50 min-h-screen pb-24">
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-100 px-5 pt-6 pb-4">
@@ -448,7 +459,13 @@ export default function DashboardClient({
                         </ul>
                       )}
 
-                      <div className="flex justify-end mt-2">
+                      <div className="flex justify-end items-center gap-4 mt-2">
+                        <button
+                          onClick={() => setEditingMeal(meal)}
+                          className="text-xs text-blue-500 hover:text-blue-700 font-medium"
+                        >
+                          ✏️ Editar
+                        </button>
                         <button
                           onClick={() => handleDelete(meal.id)}
                           disabled={deletingId === meal.id}
@@ -475,5 +492,6 @@ export default function DashboardClient({
         +
       </a>
     </main>
+    </>
   )
 }

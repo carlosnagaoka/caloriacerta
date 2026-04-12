@@ -155,6 +155,66 @@ export async function excluirRefeicao(mealId: string) {
   }
 }
 
+export async function atualizarRefeicao(
+  mealId: string,
+  items: Array<{
+    foodId?: string
+    name: string
+    weight: number
+    caloriesPer100g: number
+  }>
+) {
+  try {
+    const totalCalories = items.reduce((sum, item) => {
+      return sum + Math.round((item.weight * item.caloriesPer100g) / 100)
+    }, 0)
+
+    // Apaga os itens antigos e insere os novos
+    const { error: deleteError } = await supabaseAdmin
+      .from('meal_items')
+      .delete()
+      .eq('meal_id', mealId)
+
+    if (deleteError) {
+      console.error('[atualizarRefeicao] Erro ao deletar itens:', deleteError)
+      return { success: false, error: deleteError.message }
+    }
+
+    if (items.length > 0) {
+      const newItems = items.map(item => ({
+        meal_id: mealId,
+        food_id: item.foodId || null,
+        item_name: item.name,
+        weight_grams: item.weight,
+        calories_per_100g: item.caloriesPer100g,
+        total_calories: Math.round((item.weight * item.caloriesPer100g) / 100),
+      }))
+
+      const { error: insertError } = await supabaseAdmin
+        .from('meal_items')
+        .insert(newItems)
+
+      if (insertError) {
+        console.error('[atualizarRefeicao] Erro ao inserir itens:', insertError)
+        return { success: false, error: insertError.message }
+      }
+    }
+
+    // Atualiza o total da refeição
+    await supabaseAdmin
+      .from('meals')
+      .update({ total_calories: totalCalories })
+      .eq('id', mealId)
+
+    revalidatePath('/app/dashboard')
+    revalidatePath('/app/historico')
+
+    return { success: true, totalCalories }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+}
+
 export async function registrarTrigger(mealId: string, triggerType: string) {
   try {
     const { error } = await supabaseAdmin
