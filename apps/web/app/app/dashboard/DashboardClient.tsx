@@ -198,24 +198,12 @@ export default function DashboardClient({
             <p className="text-sm text-gray-500">{saudacao},</p>
             <h1 className="text-xl font-bold text-gray-900">{profile?.name || 'Usuário'} 👋</h1>
           </div>
-          <div className="flex items-center gap-3">
-            {subscription?.status === 'trial' && diasRestantes > 0 && (
-              <a href="/app/plano" className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium hover:bg-amber-200 transition-colors">
-                Trial: {diasRestantes}d restantes
+          <div className="flex items-center gap-2">
+            {subscription?.status === 'trial' && diasRestantes <= 3 && diasRestantes > 0 && (
+              <a href="/assinar" className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium hover:bg-amber-200 transition-colors">
+                ⚡ {diasRestantes}d
               </a>
             )}
-            {subscription?.status === 'ativo' && (
-              <a href="/app/plano" className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium hover:bg-green-200 transition-colors">
-                {subscription?.plans?.name || 'Premium'} ✓
-              </a>
-            )}
-            <form action="/logout" method="post">
-              <button type="submit" className="p-2 text-gray-400 hover:text-gray-600">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />
-                </svg>
-              </button>
-            </form>
           </div>
         </div>
       </div>
@@ -483,14 +471,7 @@ export default function DashboardClient({
         </div>
       </div>
 
-      {/* ── FAB ─────────────────────────────────────────────────────────────── */}
-      <a
-        href="/app/refeicao"
-        className="fixed bottom-6 right-6 w-16 h-16 bg-green-600 text-white rounded-full shadow-lg flex items-center justify-center text-3xl hover:bg-green-700 transition-colors z-50"
-        title="Registrar refeição"
-      >
-        +
-      </a>
+      {/* FAB removido — agora está na BottomNav central */}
     </main>
     </>
   )
