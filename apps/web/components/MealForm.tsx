@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { salvarRefeicao, buscarAlimentos } from '@/app/app/refeicao/actions'
 import MealTriggerModal from '@/components/MealTriggerModal'
@@ -40,6 +40,7 @@ export default function MealForm({ userId }: { userId: string }) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
 
   const [items, setItems] = useState<MealItem[]>([])
+  const [focusItemId, setFocusItemId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [showSearch, setShowSearch] = useState(false)
@@ -136,10 +137,11 @@ export default function MealForm({ userId }: { userId: string }) {
   const addItem = (food: any, customName?: string) => {
     const caloriesPer100g = food?.calories_per_100g ?? 0
 
+    const id = Math.random().toString(36).substr(2, 9)
     const newItem: MealItem = {
-      id: Math.random().toString(36).substr(2, 9),
+      id,
       foodId: food?.id,
-      name: customName || food?.name || 'Alimento personalizado',
+      name: customName || food?.name || '',
       weight: 100,
       caloriesPer100g: caloriesPer100g,
       totalCalories: Math.round((100 * caloriesPer100g) / 100),
@@ -149,6 +151,8 @@ export default function MealForm({ userId }: { userId: string }) {
     setSearchTerm('')
     setSearchResults([])
     setShowSearch(false)
+    // Auto-foca o campo de nome do item recém adicionado
+    setFocusItemId(id)
   }
 
   // Atualizar peso do item
@@ -450,6 +454,8 @@ export default function MealForm({ userId }: { userId: string }) {
                     <input
                       type="text"
                       value={item.name}
+                      placeholder="Nome do alimento"
+                      ref={focusItemId === item.id ? (el) => { el?.focus(); setFocusItemId(null) } : undefined}
                       onChange={(e) => updateItemName(item.id, e.target.value)}
                       onBlur={() => setTimeout(() => setItemSearchVisible(prev => ({ ...prev, [item.id]: false })), 150)}
                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-medium text-gray-900 bg-white"
