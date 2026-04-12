@@ -1,8 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { gerarPlanoIA, salvarNotasNutricionista } from '@/app/app/plano/actions'
 import type { PlanoNutricional, PlanoAtividades } from '@/app/app/plano/actions'
+
+// Extrai nomes únicos de alimentos de todos os dias do plano
+function extrairAlimentos(plano: PlanoNutricional): string[] {
+  const seen = new Set<string>()
+  plano.dias.forEach(dia =>
+    dia.refeicoes.forEach(ref =>
+      ref.itens.forEach(item => {
+        // Remove quantidades entre parênteses: "Arroz integral (150g)" → "Arroz integral"
+        const nome = item
+          .replace(/\s*\(.*?\)/g, '')
+          .replace(/^\d+\s*(g|ml|un|col|xíc|fatia|porção)?\s*/i, '')
+          .trim()
+        if (nome.length > 2) seen.add(nome)
+      })
+    )
+  )
+  return Array.from(seen).sort()
+}
 
 const DIAS_SEMANA = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']
 const DIAS_CURTO = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
@@ -191,17 +209,49 @@ export default function PlanoPersonalizado({
   const [cardapio, setCardapio] = useState<PlanoNutricional | null>(planoNutricionalInicial)
   const [atividades, setAtividades] = useState<PlanoAtividades | null>(planoAtividadesInicial)
 
+  // ── Exclusões de alimentos ──────────────────────────────────────────────
+  const STORAGE_KEY = `cc_exclusoes_${userId}`
+  const [exclusoes, setExclusoes] = useState<Set<string>>(new Set())
+  const [mostrarExclusoes, setMostrarExclusoes] = useState(false)
+
+  // Carrega exclusões salvas do localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) setExclusoes(new Set(JSON.parse(saved)))
+    } catch {}
+  }, [STORAGE_KEY])
+
+  const toggleExclusao = (nome: string) => {
+    setExclusoes(prev => {
+      const next = new Set(prev)
+      next.has(nome) ? next.delete(nome) : next.add(nome)
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next))) } catch {}
+      return next
+    })
+  }
+
+  const limparExclusoes = () => {
+    setExclusoes(new Set())
+    try { localStorage.removeItem(STORAGE_KEY) } catch {}
+  }
+
+  const alimentosDoPlano = cardapio ? extrairAlimentos(cardapio) : []
+
   const temPlano = !!(cardapio && atividades)
 
-  const handleGerar = async () => {
+  const handleGerar = async (comExclusoes = true) => {
     setGerando(true)
     setErro('')
-    const result = await gerarPlanoIA(userId, temNutricionista ? notas : undefined)
+    const excluidos = comExclusoes && exclusoes.size > 0 ? Array.from(exclusoes) : undefined
+    const result = await gerarPlanoIA(userId, temNutricionista ? notas : undefined, excluidos)
     if (result.error) {
       setErro(result.error)
     } else {
       setCardapio(result.cardapio || null)
       setAtividades(result.atividades || null)
+      // Fecha o painel de exclusões após regenerar
+      setMostrarExclusoes(false)
     }
     setGerando(false)
   }
@@ -279,7 +329,7 @@ export default function PlanoPersonalizado({
               : `A IA vai criar um cardápio semanal e um plano de atividades especialmente para você, ${nomeUsuario} — com alimentos que você encontra no Japão e no Brasil.`}
           </p>
           <button
-            onClick={handleGerar}
+            onClick={() => handleGerar(true)}
             className="w-full py-3 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition-colors"
           >
             {temNutricionista ? 'Criar plano com orientações do nutricionista' : 'Criar meu plano personalizado'}
@@ -339,19 +389,97 @@ export default function PlanoPersonalizado({
             {aba === 'atividades' && atividades && <Atividades plano={atividades} />}
           </div>
 
-          {/* Footer: data de geração + regenerar */}
-          <div className="px-4 pb-4 flex items-center justify-between">
-            {dataGeracao && (
-              <p className="text-xs text-gray-400">Gerado em {dataGeracao}</p>
-            )}
-            <button
-              onClick={handleGerar}
-              disabled={gerando}
-              className="text-xs text-gray-400 hover:text-green-600 font-medium transition-colors ml-auto"
-            >
-              ↺ Regenerar plano
-            </button>
-          </div>
+          {/* Footer: data de geração */}
+          {dataGeracao && (
+            <div className="px-4 pb-2">
+              <p className="text-xs text-gray-300">Gerado em {dataGeracao}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Exclusões: "Não gosto / Não encontro" ────────────────────────── */}
+      {temPlano && !gerando && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <button
+            onClick={() => setMostrarExclusoes(v => !v)}
+            className="w-full flex items-center justify-between px-4 py-3.5"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🚫</span>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-gray-800">Não gosto / Não encontro</p>
+                <p className="text-xs text-gray-400">
+                  {exclusoes.size > 0
+                    ? `${exclusoes.size} alimento${exclusoes.size > 1 ? 's' : ''} excluído${exclusoes.size > 1 ? 's' : ''} do próximo plano`
+                    : 'Marque o que quer evitar — o novo plano vai substituir'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {exclusoes.size > 0 && (
+                <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                  {exclusoes.size}
+                </span>
+              )}
+              <span className="text-gray-300 text-sm">{mostrarExclusoes ? '▴' : '▾'}</span>
+            </div>
+          </button>
+
+          {mostrarExclusoes && (
+            <div className="px-4 pb-4 border-t border-gray-50">
+              <p className="text-xs text-gray-400 mt-3 mb-3 leading-relaxed">
+                Toque nos alimentos que <strong>não gosta</strong> ou <strong>não consegue comprar</strong>.
+                O plano gerado vai substituir por opções equivalentes.
+              </p>
+
+              {/* Chips de alimentos */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {alimentosDoPlano.map(nome => {
+                  const excluido = exclusoes.has(nome)
+                  return (
+                    <button
+                      key={nome}
+                      onClick={() => toggleExclusao(nome)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                        excluido
+                          ? 'bg-red-50 border-red-300 text-red-600 line-through opacity-75'
+                          : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-red-300 hover:bg-red-50 hover:text-red-500'
+                      }`}
+                    >
+                      {excluido && <span className="mr-1 no-underline not-italic">✕</span>}
+                      {nome}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Ações */}
+              <div className="flex gap-2 pt-3 border-t border-gray-50">
+                {exclusoes.size > 0 && (
+                  <button
+                    onClick={limparExclusoes}
+                    className="text-xs text-gray-400 hover:text-gray-600 font-medium px-3 py-2 rounded-xl border border-gray-200"
+                  >
+                    Limpar seleção
+                  </button>
+                )}
+                <button
+                  onClick={() => handleGerar(true)}
+                  disabled={gerando}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${
+                    exclusoes.size > 0
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                >
+                  {exclusoes.size > 0
+                    ? `↺ Novo plano sem ${exclusoes.size} item${exclusoes.size > 1 ? 'ns' : ''}`
+                    : '↺ Regenerar plano'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -55,7 +55,8 @@ export interface PlanoAtividades {
 
 export async function gerarPlanoIA(
   userId: string,
-  notasNutricionista?: string
+  notasNutricionista?: string,
+  alimentosExcluidos?: string[]
 ): Promise<{ cardapio?: PlanoNutricional; atividades?: PlanoAtividades; error?: string }> {
   try {
     const { data: profile } = await supabaseAdmin
@@ -67,6 +68,11 @@ export async function gerarPlanoIA(
     if (!profile) return { error: 'Perfil não encontrado.' }
 
     const temNutricionista = notasNutricionista && notasNutricionista.trim().length > 10
+    const temExclusoes = alimentosExcluidos && alimentosExcluidos.length > 0
+
+    const blocoExclusoes = temExclusoes
+      ? `\n\nRESTRIÇÕES ABSOLUTAS — Estes alimentos NÃO podem aparecer no plano em hipótese alguma:\n${alimentosExcluidos!.join(', ')}\nUse substitutos nutricionalmente equivalentes e igual praticidade de compra.`
+      : ''
 
     const contexto = [
       `Nome: ${profile.name || 'Usuário'}`,
@@ -101,7 +107,7 @@ Responda APENAS com JSON válido, sem markdown, sem comentários.`
 ${contexto}
 
 Orientações do nutricionista:
-${notasNutricionista}
+${notasNutricionista}${blocoExclusoes}
 
 Crie:
 1. Um cardápio semanal (7 dias) respeitando TODAS as orientações acima.
@@ -131,7 +137,7 @@ Responda neste JSON exato:
   }
 }`
       : `Perfil do usuário:
-${contexto}
+${contexto}${blocoExclusoes}
 
 Crie um plano completo personalizado para este usuário.
 Use alimentos que ele realmente encontra no Japão: tofu, miso, natto, onigiri, yakitori, edamame, soba, udon — misturado com clássicos brasileiros como arroz, feijão, frango, ovo, banana.
