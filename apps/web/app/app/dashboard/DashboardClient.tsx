@@ -40,9 +40,15 @@ function CalorieRing({ consumed, goal }: { consumed: number; goal: number }) {
   const remaining = Math.max(goal - consumed, 0)
   const over = consumed > goal
 
+  const ariaLabel = `Calorias: ${consumed} de ${goal} kcal. ${over ? `${consumed - goal} acima do objetivo.` : `${Math.max(goal - consumed, 0)} restantes.`}`
+
   return (
-    <div className="relative flex items-center justify-center">
-      <svg width="152" height="152" className="-rotate-90">
+    <div
+      className="relative flex items-center justify-center"
+      role="img"
+      aria-label={ariaLabel}
+    >
+      <svg width="152" height="152" className="-rotate-90" aria-hidden="true">
         {/* track */}
         <circle cx="76" cy="76" r={r} fill="none" stroke="#f3f4f6" strokeWidth="12" />
         {/* progress */}
@@ -58,7 +64,7 @@ function CalorieRing({ consumed, goal }: { consumed: number; goal: number }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-3xl font-bold text-gray-900">{consumed}</span>
-        <span className="text-xs text-gray-400">kcal</span>
+        <span className="text-xs text-secondary">kcal</span>
         <span className={`text-xs font-medium mt-0.5 ${over ? 'text-red-500' : 'text-green-500'}`}>
           {over ? `+${consumed - goal} acima` : `${remaining} restam`}
         </span>
@@ -302,7 +308,7 @@ export default function DashboardClient({
             <CalorieRing consumed={totalHoje} goal={meta} />
             <div className="flex-1 space-y-3">
               <div className="text-center mb-3">
-                <span className="text-xs text-gray-400">Meta: <strong className="text-gray-700">{meta} kcal</strong></span>
+                <span className="text-xs text-secondary">Meta: <strong className="text-gray-700">{meta} kcal</strong></span>
               </div>
               <MacroBar label="Carbs" value={totalCarbs} max={carbMeta} color="bg-amber-400" />
               <MacroBar label="Proteína" value={totalProt} max={protMeta} color="bg-blue-400" />
@@ -381,7 +387,7 @@ export default function DashboardClient({
             <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-8 text-center">
               <div className="text-4xl mb-3">🍽️</div>
               <p className="text-gray-500 font-medium">Nenhuma refeição registrada</p>
-              <p className="text-gray-400 text-sm mt-1">Toque em + para adicionar</p>
+              <p className="text-secondary text-sm mt-1">Toque em + para adicionar</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -420,7 +426,7 @@ export default function DashboardClient({
                           <span className="text-2xl">{mealTypeIcon[meal.meal_type] || '🍽️'}</span>
                           <div>
                             <p className="font-semibold text-gray-900">{mealTypeLabel[meal.meal_type] || meal.meal_type}</p>
-                            <p className="text-xs text-gray-400">{meal.meal_time?.slice(0, 5)}</p>
+                            <p className="text-xs text-secondary">{meal.meal_time?.slice(0, 5)}</p>
                           </div>
                         </div>
                         <span className="font-bold text-green-600">{meal.total_calories} kcal</span>
@@ -431,7 +437,7 @@ export default function DashboardClient({
                     <div className="px-4 pb-3">
                       <button
                         onClick={() => setExpandedMeal(isExpanded ? null : meal.id)}
-                        className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+                        className="text-xs text-secondary hover:text-gray-700 flex items-center gap-1 btn-focus-compact"
                       >
                         {isExpanded ? '▴ Ocultar' : '▾ Ver itens'} ({meal.meal_items?.length || 0})
                       </button>
@@ -450,14 +456,14 @@ export default function DashboardClient({
                       <div className="flex justify-end items-center gap-4 mt-2">
                         <button
                           onClick={() => setEditingMeal(meal)}
-                          className="text-xs text-blue-500 hover:text-blue-700 font-medium"
+                          className="text-xs text-blue-500 hover:text-blue-700 font-medium btn-focus-compact"
                         >
                           ✏️ Editar
                         </button>
                         <button
                           onClick={() => handleDelete(meal.id)}
                           disabled={deletingId === meal.id}
-                          className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40"
+                          className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40 font-medium btn-focus-compact"
                         >
                           {deletingId === meal.id ? 'Excluindo...' : 'Excluir'}
                         </button>

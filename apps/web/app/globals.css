@@ -44,3 +44,33 @@ textarea::placeholder {
 .animate-slide-up {
   animation: slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
+
+/* ── Acessibilidade / Contraste AA (JIS X 8341-3:2016) ─────────────────────
+   text-gray-400 (#9ca3af) sobre gray-50 = Lc 50 — falha WCAG AA.
+   Usar .text-secondary (gray-600, Lc 75+) em todos os textos de apoio. */
+.text-secondary {
+  color: #4b5563; /* gray-600 — AA pass */
+}
+.text-caption {
+  color: #374151; /* gray-700 — AA pass com margem */
+}
+.placeholder-secondary::placeholder {
+  color: #6b7280; /* gray-500 */
+}
+
+/* ── Focus ring (2.4.7 WCAG) ────────────────────────────────────────────────
+   Visível para navegação por teclado. 3px verde CaloriaCerta. */
+.btn-focus:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #16a34a; /* white offset + green-600 */
+  border-radius: 4px;
+}
+.btn-focus-compact:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px #16a34a;
+  border-radius: 4px;
+}
+.input-focus:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px #16a34a; /* ring interno para inputs */
+}

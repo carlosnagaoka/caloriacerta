@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { atualizarRefeicao, buscarAlimentos } from '@/app/app/refeicao/actions'
 import { estimarCalorias } from '@/app/app/refeicao/estimate-calories'
+import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 
 interface EditItem {
   id: string          // id local temporário
@@ -57,6 +58,9 @@ export default function EditMealModal({ mealId, mealLabel, initialItems, onClose
   const [itemSearchVisible, setItemSearchVisible] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  const handleSaveRef = useRef<() => Promise<void>>(async () => {})
+  const { modalRef } = useModalKeyboard({ isOpen: true, onClose, onSubmit: () => handleSaveRef.current() })
 
   const totalCalories = items.reduce((s, i) => s + i.totalCalories, 0)
 
@@ -161,8 +165,17 @@ export default function EditMealModal({ mealId, mealLabel, initialItems, onClose
     onClose()
   }
 
+  // Sincroniza ref do handleSave para o hook poder chamar via Ctrl+Enter
+  handleSaveRef.current = handleSave
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white">
+    <div
+      ref={modalRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-meal-title"
+      className="fixed inset-0 z-50 flex flex-col bg-white"
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white">
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1">
@@ -171,8 +184,8 @@ export default function EditMealModal({ mealId, mealLabel, initialItems, onClose
           </svg>
         </button>
         <div className="text-center">
-          <p className="text-sm font-bold text-gray-900">Editar refeição</p>
-          <p className="text-xs text-gray-400">{mealLabel}</p>
+          <p id="edit-meal-title" className="text-sm font-bold text-gray-900">Editar refeição</p>
+          <p className="text-xs text-secondary">{mealLabel}</p>
         </div>
         <button
           onClick={handleSave}

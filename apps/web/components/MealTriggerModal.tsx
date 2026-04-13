@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { registrarTrigger } from '@/app/app/refeicao/actions'
+import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 
 interface MealTriggerModalProps {
   mealId: string
@@ -25,6 +26,8 @@ export default function MealTriggerModal({ mealId, totalCalories, onClose }: Mea
   const [selected, setSelected] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [countdown, setCountdown] = useState(AUTO_SKIP_SECONDS)
+  const handleSkipRef = useRef<() => void>(() => {})
+  const { modalRef } = useModalKeyboard({ isOpen: true, onClose: () => handleSkipRef.current() })
 
   // Contagem regressiva — pula automaticamente
   useEffect(() => {
@@ -48,9 +51,18 @@ export default function MealTriggerModal({ mealId, totalCalories, onClose }: Mea
     onClose()
   }
 
+  // Sincroniza ref para o hook poder chamar via Escape
+  handleSkipRef.current = handleSkip
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-full max-w-md bg-white rounded-t-2xl px-5 pt-6 pb-8 shadow-2xl animate-slide-up">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trigger-modal-title"
+        className="w-full max-w-md bg-white rounded-t-2xl px-5 pt-6 pb-8 shadow-2xl animate-slide-up"
+      >
 
         {/* Header */}
         <div className="flex items-start justify-between mb-1">
@@ -58,7 +70,7 @@ export default function MealTriggerModal({ mealId, totalCalories, onClose }: Mea
             <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">
               Refeição salva · {totalCalories} kcal ✓
             </p>
-            <h2 className="text-lg font-bold text-gray-900 mt-0.5">
+            <h2 id="trigger-modal-title" className="text-lg font-bold text-gray-900 mt-0.5">
               O que te fez comer agora?
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
