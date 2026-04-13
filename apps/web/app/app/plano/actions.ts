@@ -91,15 +91,59 @@ export async function gerarPlanoIA(
       'Contexto: Brasileiro(a) vivendo no Japão. Incluir alimentos acessíveis nos supermercados japoneses E opções brasileiras.',
     ].filter(Boolean).join('\n')
 
+    const regrasCaloricas = `
+REGRAS DE CÁLCULO CALÓRICO — OBRIGATÓRIAS:
+Calcule kcal_aprox somando cada ingrediente com base em valores nutricionais reais (TACO / USDA).
+Referências obrigatórias (kcal por 100g salvo indicação):
+- Frango peito grelhado: 110 kcal/100g
+- Frango coxa/sobrecoxa: 180 kcal/100g
+- Carne bovina magra: 150 kcal/100g
+- Peixe branco (tilápia, bacalhau): 90 kcal/100g
+- Salmão: 180 kcal/100g
+- Atum em água (escorrido): 100 kcal/100g
+- Ovo inteiro: 70 kcal/unidade
+- Arroz branco cozido: 130 kcal/100g
+- Arroz integral cozido: 125 kcal/100g
+- Feijão cozido: 77 kcal/100g
+- Macarrão cozido: 160 kcal/100g
+- Soba cozido: 130 kcal/100g
+- Udon cozido: 105 kcal/100g
+- Tofu firme: 76 kcal/100g
+- Onigiri (médio, 100g): 190 kcal/unidade
+- Edamame cozido: 110 kcal/100g
+- Pão de forma integral (fatia 25g): 65 kcal
+- Banana (média): 89 kcal/100g
+- Maçã (média): 52 kcal/100g
+- Folhas verdes (alface, rúcula, espinafre): 20 kcal/100g
+- Tomate: 18 kcal/100g
+- Pepino: 15 kcal/100g
+- Cenoura: 41 kcal/100g
+- Brócolis cozido: 35 kcal/100g
+- Azeite de oliva: 884 kcal/100g (1 col. sopa ≈ 13.5g = 119 kcal)
+- Manteiga: 717 kcal/100g (1 col. chá ≈ 5g = 36 kcal)
+- Leite integral: 61 kcal/100ml
+- Iogurte natural integral: 61 kcal/100g
+- Queijo mussarela: 280 kcal/100g
+- Whey protein (1 dose 30g): 110 kcal
+- Miso (pasta, 1 col. sopa ≈ 18g): 35 kcal
+- Yakitori (espeto 30g): 65 kcal
+- Natto (1 pacote 50g): 95 kcal
+
+Para ingredientes não listados, use TACO/USDA e estime conservadoramente.
+NUNCA arredonde para cima. Prefira subestimar levemente a superestimar.
+O total_kcal do dia DEVE ser a soma real dos kcal_aprox de cada refeição.`
+
     const systemPrompt = temNutricionista
       ? `Você é um assistente que ajuda o usuário a seguir as orientações do nutricionista dele.
 Sua função é transformar as anotações do nutricionista em um cardápio semanal prático e em um plano de atividades físicas.
 Siga RIGOROSAMENTE as diretrizes informadas. Quando algo não estiver especificado, use bom senso nutricional.
+${regrasCaloricas}
 Responda APENAS com JSON válido, sem markdown, sem comentários.`
       : `Você é um nutricionista experiente e direto, especializado em brasileiros vivendo no Japão.
 Você conhece os supermercados japoneses (イオン, コープ, etc.), sabe quais alimentos brasileiros estão disponíveis no Japão,
 e cria planos práticos — não planos de revista que ninguém consegue seguir.
 Fale diretamente com o usuário, em primeira pessoa, como um bom amigo que é nutricionista.
+${regrasCaloricas}
 Responda APENAS com JSON válido, sem markdown, sem comentários.`
 
     const userPrompt = temNutricionista
@@ -182,8 +226,8 @@ Responda neste JSON exato:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
-      max_tokens: 3000,
-      temperature: 0.7,
+      max_tokens: 4000,
+      temperature: 0.3,
       response_format: { type: 'json_object' },
     })
 
