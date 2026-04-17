@@ -48,47 +48,40 @@ export async function criarCheckoutSession(
     }
 
     const priceId = PRICES[plano][moeda][periodo]
-    console.log('[Checkout] user:', user.id, '| baseUrl:', BASE_URL, '| priceId:', priceId)
+    const successUrl = `${BASE_URL}/app/dashboard?assinatura=sucesso`
+    const cancelUrl  = `${BASE_URL}/assinar?cancelado=1`
+    console.log('[Checkout] user:', user.id)
+    console.log('[Checkout] priceId:', priceId)
+    console.log('[Checkout] success_url:', successUrl)
+    console.log('[Checkout] cancel_url:', cancelUrl)
 
-    // Reusar ou criar customer no Stripe
-    let customerId = profile?.stripe_customer_id
+    // Cria customer Stripe (sem depender da coluna stripe_customer_id)
+    const email = user.email || profile?.email || ''
+    const customer = await stripe.customers.create({
+      email,
+      name: profile?.name || undefined,
+      metadata: { supabase_user_id: user.id },
+    })
+    console.log('[Checkout] customer criado:', customer.id)
 
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: profile?.email || user.email!,
-        name: profile?.name || undefined,
-        metadata: { supabase_user_id: user.id },
+    // Salva o customer ID se a coluna existir (ignora erro se não existir)
+    await supabaseAdmin
+      .from('users')
+      .update({ stripe_customer_id: customer.id })
+      .eq('id', user.id)
+      .then(({ error }) => {
+        if (error) console.log('[Checkout] stripe_customer_id não salvo (coluna ausente):', error.message)
       })
-      customerId = customer.id
 
-      await supabaseAdmin
-        .from('users')
-        .update({ stripe_customer_id: customerId })
-        .eq('id', user.id)
-    }
-
+    // Checkout mínimo — apenas campos obrigatórios
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
+      customer: customer.id,
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${BASE_URL}/app/dashboard?assinatura=sucesso`,
-      cancel_url: `${BASE_URL}/assinar?cancelado=1`,
-      metadata: {
-        supabase_user_id: user.id,
-        plano,
-        moeda,
-        periodo,
-      },
-      subscription_data: {
-        metadata: {
-          supabase_user_id: user.id,
-          plano,
-        },
-      },
-      payment_method_types: ['card'],
-      allow_promotion_codes: true,
-      billing_address_collection: 'auto',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
     })
+    console.log('[Checkout] session criada:', session.id, '| url:', session.url?.slice(0, 50))
 
     return { url: session.url! }
 
