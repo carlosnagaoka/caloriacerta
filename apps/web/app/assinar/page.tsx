@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { criarCheckoutSession } from './actions'
+import { useState, useRef } from 'react'
+import { criarCheckoutSession, resgatarCortesia } from './actions'
 import type { Moeda, Periodo } from '@/lib/stripe'
 
 const PLANOS = {
@@ -55,6 +55,14 @@ export default function AssinarPage() {
   const [loading, setLoading] = useState<string | null>(null)
   const [erro, setErro] = useState('')
 
+  // Cortesia
+  const [mostrarCortesia, setMostrarCortesia] = useState(false)
+  const [codigoCortesia, setCodigoCortesia] = useState('')
+  const [loadingCortesia, setLoadingCortesia] = useState(false)
+  const [erroCortesia, setErroCortesia] = useState('')
+  const [successCortesia, setSuccessCortesia] = useState('')
+  const inputCortesiaRef = useRef<HTMLInputElement>(null)
+
   const handleAssinar = async (plano: 'basico' | 'premium') => {
     setLoading(plano)
     setErro('')
@@ -68,10 +76,40 @@ export default function AssinarPage() {
       }
     } catch (err: any) {
       console.error('[Checkout] Client error:', err)
-      // Mostra o erro real em vez de mensagem genérica
       const msg = err?.message || err?.toString() || 'Erro desconhecido'
       setErro(`Erro: ${msg}`)
       setLoading(null)
+    }
+  }
+
+  const handleToggleCortesia = () => {
+    setMostrarCortesia(v => !v)
+    setErroCortesia('')
+    setSuccessCortesia('')
+    // Auto-focus no campo quando abrir
+    setTimeout(() => inputCortesiaRef.current?.focus(), 100)
+  }
+
+  const handleResgatar = async () => {
+    if (!codigoCortesia.trim()) {
+      setErroCortesia('Digite o código de cortesia.')
+      return
+    }
+    setLoadingCortesia(true)
+    setErroCortesia('')
+    setSuccessCortesia('')
+    try {
+      const result = await resgatarCortesia(codigoCortesia)
+      if (result.success) {
+        setSuccessCortesia(`🎉 Plano ${result.planName} ativado com sucesso! Redirecionando...`)
+        setTimeout(() => { window.location.href = '/app/dashboard?cortesia=ativada' }, 2000)
+      } else {
+        setErroCortesia(result.error || 'Código inválido.')
+        setLoadingCortesia(false)
+      }
+    } catch (err: any) {
+      setErroCortesia('Erro ao validar código. Tente novamente.')
+      setLoadingCortesia(false)
     }
   }
 
@@ -206,12 +244,73 @@ export default function AssinarPage() {
           })}
         </div>
 
-        {/* Erro */}
+        {/* Erro checkout */}
         {erro && (
           <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm text-center">
             ⚠️ {erro}
           </div>
         )}
+
+        {/* ── Código de Cortesia ─────────────────────────────────── */}
+        <div className="mt-8">
+          <button
+            onClick={handleToggleCortesia}
+            className="mx-auto flex items-center gap-2 text-sm text-gray-500 hover:text-green-700 transition-colors"
+          >
+            <span className="text-lg">🎁</span>
+            <span className="underline underline-offset-2">
+              {mostrarCortesia ? 'Fechar' : 'Tem um código de cortesia?'}
+            </span>
+          </button>
+
+          {mostrarCortesia && (
+            <div className="mt-4 max-w-sm mx-auto bg-white border border-green-200 rounded-2xl p-5 shadow-sm animate-slide-up">
+              <p className="text-sm font-semibold text-gray-800 mb-1">
+                🎁 Código de cortesia
+              </p>
+              <p className="text-xs text-gray-500 mb-4">
+                Se você recebeu um código especial, insira abaixo para ativar seu plano gratuitamente.
+              </p>
+
+              <div className="flex gap-2">
+                <input
+                  ref={inputCortesiaRef}
+                  type="text"
+                  value={codigoCortesia}
+                  onChange={e => setCodigoCortesia(e.target.value.toUpperCase())}
+                  onKeyDown={e => e.key === 'Enter' && handleResgatar()}
+                  placeholder="EX: AMIGO2026"
+                  maxLength={30}
+                  className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-mono tracking-widest text-gray-900 uppercase placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:ring-2 focus:ring-green-500"
+                  aria-label="Código de cortesia"
+                />
+                <button
+                  onClick={handleResgatar}
+                  disabled={loadingCortesia || !!successCortesia}
+                  className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-xl disabled:opacity-60 transition-colors whitespace-nowrap"
+                >
+                  {loadingCortesia ? (
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                    </svg>
+                  ) : 'Resgatar'}
+                </button>
+              </div>
+
+              {erroCortesia && (
+                <p className="mt-3 text-xs text-red-600 flex items-start gap-1">
+                  <span>⚠️</span> {erroCortesia}
+                </p>
+              )}
+              {successCortesia && (
+                <p className="mt-3 text-xs text-green-700 font-medium flex items-start gap-1">
+                  <span>{successCortesia}</span>
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Garantias */}
         <div className="mt-10 grid grid-cols-3 gap-4 text-center">
