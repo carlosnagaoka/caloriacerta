@@ -36,20 +36,35 @@ export async function criarCheckoutSession(
   periodo: Periodo
 ): Promise<{ url?: string; error?: string }> {
   try {
+    // Verifica variáveis críticas antes de qualquer chamada
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('[Checkout] STRIPE_SECRET_KEY não definida')
+      return { error: 'Configuração de pagamento ausente. Contate o suporte.' }
+    }
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!user) return { error: 'Não autenticado' }
+    if (authError) {
+      console.error('[Checkout] Auth error:', authError.message)
+      return { error: 'Sessão expirada. Faça login novamente.' }
+    }
+    if (!user) return { error: 'Não autenticado. Faça login.' }
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('users')
       .select('email, name, stripe_customer_id')
       .eq('id', user.id)
       .single()
 
+    if (profileError) {
+      console.error('[Checkout] Profile error:', profileError.message)
+      // Continua sem perfil — usa dados do auth
+    }
+
     const priceId = PRICES[plano][moeda][periodo]
     const baseUrl = getBaseUrl()
-    console.log('[Checkout] baseUrl:', baseUrl, '| priceId:', priceId)
+    console.log('[Checkout] user:', user.id, '| baseUrl:', baseUrl, '| priceId:', priceId)
 
     // Reusar ou criar customer no Stripe
     let customerId = profile?.stripe_customer_id

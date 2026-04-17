@@ -61,13 +61,16 @@ export default function AssinarPage() {
     try {
       const result = await criarCheckoutSession(plano, moeda, periodo)
       if (result.url) {
-        window.location.href = result.url  // redirect confiável via browser
+        window.location.href = result.url
       } else {
         setErro(result.error || 'Erro ao iniciar pagamento. Tente novamente.')
         setLoading(null)
       }
     } catch (err: any) {
-      setErro('Erro inesperado. Tente novamente.')
+      console.error('[Checkout] Client error:', err)
+      // Mostra o erro real em vez de mensagem genérica
+      const msg = err?.message || err?.toString() || 'Erro desconhecido'
+      setErro(`Erro: ${msg}`)
       setLoading(null)
     }
   }
