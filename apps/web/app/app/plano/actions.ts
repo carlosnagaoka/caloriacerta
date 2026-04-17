@@ -285,12 +285,7 @@ export async function criarPortalSession(
       return { error: 'Nenhuma assinatura ativa encontrada.' }
     }
 
-    const rawBase = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL
-    const baseUrl = rawBase
-      ? rawBase.replace(/\/$/, '')
-      : process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'https://caloriacerta.vercel.app'
+    const baseUrl = 'https://caloriacerta.vercel.app'
 
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,

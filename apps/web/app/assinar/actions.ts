@@ -11,23 +11,8 @@ const supabaseAdmin = createAdmin(
   { auth: { autoRefreshToken: false, persistSession: false } }
 )
 
-/**
- * Determina a URL base de forma robusta.
- * Prioridade: APP_URL explícita > VERCEL_URL automática > fallback hardcoded.
- * Remove barra final para evitar double-slash nas rotas.
- */
-function getBaseUrl(): string {
-  // 1. Variável explícita (sem NEXT_PUBLIC_ para ser segura no servidor)
-  const explicit = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL
-  if (explicit) return explicit.replace(/\/$/, '')
-
-  // 2. VERCEL_URL é definida automaticamente pelo Vercel (sem https://)
-  const vercelUrl = process.env.VERCEL_URL
-  if (vercelUrl) return `https://${vercelUrl}`
-
-  // 3. Fallback hardcoded
-  return 'https://caloriacerta.vercel.app'
-}
+// URL de produção — fixa para evitar qualquer ambiguidade com env vars
+const BASE_URL = 'https://caloriacerta.vercel.app'
 
 // Retorna a URL em vez de redirecionar — client faz window.location.href
 export async function criarCheckoutSession(
@@ -63,8 +48,7 @@ export async function criarCheckoutSession(
     }
 
     const priceId = PRICES[plano][moeda][periodo]
-    const baseUrl = getBaseUrl()
-    console.log('[Checkout] user:', user.id, '| baseUrl:', baseUrl, '| priceId:', priceId)
+    console.log('[Checkout] user:', user.id, '| baseUrl:', BASE_URL, '| priceId:', priceId)
 
     // Reusar ou criar customer no Stripe
     let customerId = profile?.stripe_customer_id
@@ -87,8 +71,8 @@ export async function criarCheckoutSession(
       customer: customerId,
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${baseUrl}/app/dashboard?assinatura=sucesso`,
-      cancel_url: `${baseUrl}/assinar?cancelado=1`,
+      success_url: `${BASE_URL}/app/dashboard?assinatura=sucesso`,
+      cancel_url: `${BASE_URL}/assinar?cancelado=1`,
       metadata: {
         supabase_user_id: user.id,
         plano,
@@ -127,11 +111,9 @@ export async function criarPortalSession() {
 
   if (!profile?.stripe_customer_id) redirect('/assinar')
 
-  const baseUrl = getBaseUrl()
-
   const session = await stripe.billingPortal.sessions.create({
     customer: profile.stripe_customer_id,
-    return_url: `${baseUrl}/app/dashboard`,
+    return_url: `${BASE_URL}/app/dashboard`,
   })
 
   redirect(session.url)
