@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { excluirRefeicao } from '@/app/app/refeicao/actions'
 import WeightWidget from '@/components/WeightWidget'
 import WaterWidget from '@/components/WaterWidget'
+import FastingWidget from '@/components/FastingWidget'
 import ProjecaoCard from '@/components/ProjecaoCard'
 import SmartMessageCard from '@/components/SmartMessageCard'
 import CorrectionCard from '@/components/CorrectionCard'
@@ -111,6 +112,7 @@ export default function DashboardClient({
   honestyCheck,
   temPlano,
   waterMl,
+  fastingSession,
 }: {
   profile: any
   subscription: any
@@ -126,6 +128,7 @@ export default function DashboardClient({
   honestyCheck: HonestyCheck | null
   temPlano: boolean
   waterMl: number
+  fastingSession: { id: string; plan: string; targetHours: number; startedAt: string } | null
 }) {
   const router = useRouter()
   // Data local do dispositivo (corrige fuso Japão UTC+9)
@@ -370,6 +373,14 @@ export default function DashboardClient({
             date={today}
             initialMl={waterMl}
             metaMl={2000}
+          />
+        )}
+
+        {/* ── Jejum intermitente ───────────────────────────────────────────────── */}
+        {isToday && (
+          <FastingWidget
+            userId={profile?.id}
+            activeSession={fastingSession}
           />
         )}
 

@@ -41,6 +41,7 @@ export default async function DashboardPage({
     { data: recentMeals },
     { data: mealHistory },
     { data: waterLog },
+    { data: fastingSession },
   ] = await Promise.all([
     supabaseAdmin.from('users').select('*').eq('id', user.id).maybeSingle(),
     supabaseAdmin
@@ -79,6 +80,14 @@ export default async function DashboardPage({
       .select('total_ml')
       .eq('user_id', user.id)
       .eq('log_date', selectedDate)
+      .maybeSingle(),
+    supabaseAdmin
+      .from('fasting_sessions')
+      .select('id, plan, target_hours, started_at')
+      .eq('user_id', user.id)
+      .is('ended_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle(),
   ])
 
@@ -170,6 +179,12 @@ export default async function DashboardPage({
       honestyCheck={honestyCheck}
       temPlano={!!(profile?.plano_nutricional)}
       waterMl={waterLog?.total_ml ?? 0}
+      fastingSession={fastingSession ? {
+        id: fastingSession.id,
+        plan: fastingSession.plan,
+        targetHours: fastingSession.target_hours,
+        startedAt: fastingSession.started_at,
+      } : null}
     />
   )
 }
