@@ -30,11 +30,9 @@ export default async function DashboardPage({
   }
 
   const params = await searchParams
-  // Se não vier data na URL, usa hoje em UTC (o client envia a data local via URL quando navega)
-  // A data padrão é só o fallback inicial — o DashboardClient já redireciona com ?data=YYYY-MM-DD local
   const selectedDate = params.data || new Date().toISOString().split('T')[0]
 
-  // Busca dados com admin (ignora RLS)
+  // Busca dados com admin (ignora RLS) — todos com maybeSingle para evitar crash em 0 rows
   const [
     { data: profile },
     { data: subscription },
@@ -43,14 +41,14 @@ export default async function DashboardPage({
     { data: recentMeals },
     { data: mealHistory },
   ] = await Promise.all([
-    supabaseAdmin.from('users').select('*').eq('id', user.id).single(),
+    supabaseAdmin.from('users').select('*').eq('id', user.id).maybeSingle(),
     supabaseAdmin
       .from('subscriptions')
       .select('*, plans(name)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single(),
+      .maybeSingle(),
     supabaseAdmin
       .from('meals')
       .select('*, meal_items(item_name, weight_grams, total_calories)')
@@ -63,14 +61,12 @@ export default async function DashboardPage({
       .eq('user_id', user.id)
       .order('logged_at', { ascending: false })
       .limit(30),
-    // meal_date apenas — para BehavioralEngine
     supabaseAdmin
       .from('meals')
       .select('meal_date')
       .eq('user_id', user.id)
       .order('meal_date', { ascending: false })
       .limit(60),
-    // meal_date + meal_type + total_calories — para PatternEngine + ICEngine
     supabaseAdmin
       .from('meals')
       .select('meal_date, meal_type, total_calories')
@@ -89,35 +85,66 @@ export default async function DashboardPage({
     ? Math.ceil((new Date(subscription.ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : 0
 
-  // ── BehavioralEngine — roda server-side, zero round-trip ────────────────
-  // "today" = selectedDate quando o usuário abriu o dashboard sem parâmetros
-  // (o DashboardClient envia ?data=YYYY-MM-DD local, mas no first load usamos UTC)
   const recentMealDates = (recentMeals ?? []).map((m: any) => m.meal_date as string)
   const mealRecords = (mealHistory ?? []) as { meal_date: string; meal_type: string; total_calories: number }[]
 
-  // ── Engines — todos server-side, zero round-trip ─────────────────────────
-  const behaviorState = computeBehaviorState(
-    recentMealDates,
-    profile?.ic_streak_days ?? 0,
-    selectedDate
-  )
-  const smartMessage = generateSmartMessage(behaviorState, user.id)
-  const patternInsight = detectPrimaryPattern(mealRecords, selectedDate)
-  const correction = getWeeklyCorrection(patternInsight.type, user.id)
-  const icResult = computeICScore(
-    mealRecords,
-    profile?.daily_calorie_goal ?? 2000,
-    selectedDate
-  )
-  const honestyCheck = checkMealHonesty(mealRecords, selectedDate)
+  // ── Engines com fallback — nunca deixar o dashboard quebrar por engine ─────
+  let behaviorState: any
+  let smartMessage: any
+  let patternInsight: any
+  let correction: any
+  let icResult: any
+  let honestyCheck: any
+
+  try {
+    behaviorState = computeBehaviorState(recentMealDates, profile?.ic_streak_days ?? 0, selectedDate)
+  } catch (e) {
+    console.error('[Dashboard] behaviorState error:', e)
+    behaviorState = { consistencyPct: 0 }
+  }
+
+  try {
+    smartMessage = generateSmartMessage(behaviorState, user.id)
+  } catch (e) {
+    console.error('[Dashboard] smartMessage error:', e)
+    smartMessage = { title: '', body: '', emoji: '📊', type: 'neutral' }
+  }
+
+  try {
+    patternInsight = detectPrimaryPattern(mealRecords, selectedDate)
+  } catch (e) {
+    console.error('[Dashboard] patternInsight error:', e)
+    patternInsight = { type: 'none', message: '' }
+  }
+
+  try {
+    correction = getWeeklyCorrection(patternInsight?.type ?? 'none', user.id)
+  } catch (e) {
+    console.error('[Dashboard] correction error:', e)
+    correction = null
+  }
+
+  try {
+    icResult = computeICScore(mealRecords, profile?.daily_calorie_goal ?? 2000, selectedDate)
+  } catch (e) {
+    console.error('[Dashboard] icResult error:', e)
+    icResult = { score: 0, trend: 'stable', streakDays: 0 }
+  }
+
+  try {
+    honestyCheck = checkMealHonesty(mealRecords, selectedDate)
+  } catch (e) {
+    console.error('[Dashboard] honestyCheck error:', e)
+    honestyCheck = null
+  }
 
   // Atualiza IC no perfil silenciosamente (fire-and-forget)
-  if (icResult.score !== profile?.ic_score) {
+  if (icResult?.score !== undefined && icResult.score !== profile?.ic_score) {
     supabaseAdmin
       .from('users')
       .update({ ic_score: icResult.score })
       .eq('id', user.id)
-      .then(() => {}) // não bloqueia o render
+      .then(() => {})
   }
 
   return (
@@ -129,7 +156,7 @@ export default async function DashboardPage({
       selectedDate={selectedDate}
       weightLogs={weightLogs || []}
       smartMessage={smartMessage}
-      behaviorConsistencyPct={behaviorState.consistencyPct}
+      behaviorConsistencyPct={behaviorState?.consistencyPct ?? 0}
       patternInsight={patternInsight}
       correction={correction}
       icResult={icResult}
