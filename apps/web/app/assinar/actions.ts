@@ -154,29 +154,35 @@ export async function resgatarCortesia(code: string): Promise<{
     expiresAt.setMonth(expiresAt.getMonth() + (cortesia.duration_months || 12))
     const expiresAtISO = expiresAt.toISOString()
 
-    // Stripe ID fictício único por usuário (evita NULL ou UNIQUE conflicts)
-    const fakeStripeId = `courtesy_${cortesia.code}_${user.id.slice(0, 8)}`
-
     // Upsert na tabela subscriptions
     const { data: existingSub } = await supabaseAdmin
       .from('subscriptions')
-      .select('id')
+      .select('id, stripe_subscription_id')
       .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
 
     if (existingSub) {
-      await supabaseAdmin
+      // Só atualiza status/plano/validade — preserva stripe_subscription_id existente
+      const { error: updateError } = await supabaseAdmin
         .from('subscriptions')
         .update({
           plan_id: plan.id,
           status: 'ativo',
           ends_at: expiresAtISO,
-          stripe_subscription_id: fakeStripeId,
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', user.id)
+        .eq('id', existingSub.id)
+
+      if (updateError) {
+        console.error('[Cortesia] Erro ao atualizar subscription:', updateError.message)
+        return { success: false, error: 'Erro ao ativar plano. Contate o suporte.' }
+      }
     } else {
-      await supabaseAdmin
+      // Cria nova subscription com ID fictício único por usuário+código
+      const fakeStripeId = `courtesy_${cortesia.code}_${user.id.slice(0, 8)}`
+      const { error: insertError } = await supabaseAdmin
         .from('subscriptions')
         .insert({
           user_id: user.id,
@@ -186,6 +192,11 @@ export async function resgatarCortesia(code: string): Promise<{
           ends_at: expiresAtISO,
           stripe_subscription_id: fakeStripeId,
         })
+
+      if (insertError) {
+        console.error('[Cortesia] Erro ao inserir subscription:', insertError.message)
+        return { success: false, error: 'Erro ao ativar plano. Contate o suporte.' }
+      }
     }
 
     // Registra o resgate
