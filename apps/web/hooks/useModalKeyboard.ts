@@ -16,6 +16,13 @@ export function useModalKeyboard({
   const modalRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
+  // Mantém as callbacks em refs — assim o effect não re-executa quando
+  // as funções são recriadas pelo componente pai a cada render
+  const onCloseRef = useRef(onClose)
+  const onSubmitRef = useRef(onSubmit)
+  onCloseRef.current = onClose
+  onSubmitRef.current = onSubmit
+
   const getFocusableElements = useCallback(() => {
     if (!modalRef.current) return []
     return Array.from(
@@ -34,14 +41,14 @@ export function useModalKeyboard({
       // Fechar com Escape
       if (e.key === 'Escape') {
         e.preventDefault()
-        onClose()
+        onCloseRef.current()
         return
       }
 
       // Enviar com Ctrl+Enter / Cmd+Enter
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault()
-        onSubmit?.()
+        onSubmitRef.current?.()
         return
       }
 
@@ -64,7 +71,7 @@ export function useModalKeyboard({
       }
     }
 
-    // Auto-focus no primeiro elemento focável
+    // Auto-focus no primeiro elemento focável (só na abertura do modal)
     setTimeout(() => {
       const focusable = getFocusableElements()
       if (focusable.length > 0) focusable[0].focus()
@@ -74,10 +81,11 @@ export function useModalKeyboard({
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      // Restaura foco ao elemento que estava ativo antes do modal abrir
       previousFocusRef.current?.focus()
     }
-  }, [isOpen, onClose, onSubmit, getFocusableElements])
+  // onClose e onSubmit removidos das deps — usamos refs para acessá-los
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, getFocusableElements])
 
   return { modalRef }
 }
