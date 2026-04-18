@@ -157,14 +157,13 @@ export async function resgatarCortesia(code: string): Promise<{
     // Upsert na tabela subscriptions
     const { data: existingSub } = await supabaseAdmin
       .from('subscriptions')
-      .select('id, stripe_subscription_id')
+      .select('id')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
     if (existingSub) {
-      // Só atualiza status/plano/validade — preserva stripe_subscription_id existente
       const { error: updateError } = await supabaseAdmin
         .from('subscriptions')
         .update({
@@ -180,8 +179,6 @@ export async function resgatarCortesia(code: string): Promise<{
         return { success: false, error: 'Erro ao ativar plano. Contate o suporte.' }
       }
     } else {
-      // Cria nova subscription com ID fictício único por usuário+código
-      const fakeStripeId = `courtesy_${cortesia.code}_${user.id.slice(0, 8)}`
       const { error: insertError } = await supabaseAdmin
         .from('subscriptions')
         .insert({
@@ -190,7 +187,6 @@ export async function resgatarCortesia(code: string): Promise<{
           status: 'ativo',
           starts_at: new Date().toISOString(),
           ends_at: expiresAtISO,
-          stripe_subscription_id: fakeStripeId,
         })
 
       if (insertError) {

@@ -50,7 +50,6 @@ async function atualizarSubscription(
         plan_id: plan?.id,
         status,
         ends_at: endsAt,
-        stripe_subscription_id: subscription.id,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId)
@@ -63,7 +62,6 @@ async function atualizarSubscription(
         status,
         starts_at: new Date().toISOString(),
         ends_at: endsAt,
-        stripe_subscription_id: subscription.id,
       })
   }
 }
