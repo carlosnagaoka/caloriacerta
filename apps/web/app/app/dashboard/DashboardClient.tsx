@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { excluirRefeicao } from '@/app/app/refeicao/actions'
 import WeightWidget from '@/components/WeightWidget'
+import WaterWidget from '@/components/WaterWidget'
 import ProjecaoCard from '@/components/ProjecaoCard'
 import SmartMessageCard from '@/components/SmartMessageCard'
 import CorrectionCard from '@/components/CorrectionCard'
@@ -109,6 +110,7 @@ export default function DashboardClient({
   icResult,
   honestyCheck,
   temPlano,
+  waterMl,
 }: {
   profile: any
   subscription: any
@@ -123,6 +125,7 @@ export default function DashboardClient({
   icResult: ICResult
   honestyCheck: HonestyCheck | null
   temPlano: boolean
+  waterMl: number
 }) {
   const router = useRouter()
   // Data local do dispositivo (corrige fuso Japão UTC+9)
@@ -357,6 +360,16 @@ export default function DashboardClient({
             pesoMeta={profile?.peso_alvo_kg ?? null}
             pesos={weightLogs}
             today={today}
+          />
+        )}
+
+        {/* ── Água (hidratação diária) ─────────────────────────────────────────── */}
+        {isToday && (
+          <WaterWidget
+            userId={profile?.id}
+            date={today}
+            initialMl={waterMl}
+            metaMl={2000}
           />
         )}
 

@@ -40,6 +40,7 @@ export default async function DashboardPage({
     { data: weightLogs },
     { data: recentMeals },
     { data: mealHistory },
+    { data: waterLog },
   ] = await Promise.all([
     supabaseAdmin.from('users').select('*').eq('id', user.id).maybeSingle(),
     supabaseAdmin
@@ -73,6 +74,12 @@ export default async function DashboardPage({
       .eq('user_id', user.id)
       .order('meal_date', { ascending: false })
       .limit(90),
+    supabaseAdmin
+      .from('water_logs')
+      .select('total_ml')
+      .eq('user_id', user.id)
+      .eq('log_date', selectedDate)
+      .maybeSingle(),
   ])
 
   // Só redireciona pro onboarding se conta nova sem refeições
@@ -162,6 +169,7 @@ export default async function DashboardPage({
       icResult={icResult}
       honestyCheck={honestyCheck}
       temPlano={!!(profile?.plano_nutricional)}
+      waterMl={waterLog?.total_ml ?? 0}
     />
   )
 }
