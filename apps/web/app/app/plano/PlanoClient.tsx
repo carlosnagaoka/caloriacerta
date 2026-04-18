@@ -45,7 +45,7 @@ const RECURSOS = [
 ]
 
 function StatusBadge({ status, diasRestantes }: { status: string; diasRestantes: number }) {
-  if (status === 'ativo') {
+  if (status === 'active') {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
         <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
@@ -100,7 +100,7 @@ export default function PlanoClient({
   const planSlug: string = subscription?.plans?.slug || 'basico'
   const planName: string = subscription?.plans?.name || 'Básico'
   const isPremium = planSlug === 'premium'
-  const isAtivo = subscription?.status === 'ativo'
+  const isAtivo = subscription?.status === 'active'
   const isTrial = subscription?.status === 'trial'
 
   const renovacaoLabel = subscription?.ends_at

@@ -60,11 +60,11 @@ export default function PerfilClient({ profile, email, subscription, totalRefeic
             <h1 className="text-xl font-bold text-gray-900">{profile?.name || 'Usuário'}</h1>
             <p className="text-sm text-gray-400">{email}</p>
             <span className={`inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
-              statusAssinatura === 'ativo'
+              statusAssinatura === 'active'
                 ? 'bg-green-100 text-green-700'
                 : 'bg-amber-100 text-amber-700'
             }`}>
-              {statusAssinatura === 'ativo' ? `${nomePlano} ✓` : 'Trial'}
+              {statusAssinatura === 'active' ? `${nomePlano} ✓` : 'Trial'}
             </span>
           </div>
         </div>
@@ -119,7 +119,7 @@ export default function PerfilClient({ profile, email, subscription, totalRefeic
         </div>
 
         {/* Assinatura */}
-        {statusAssinatura === 'ativo' && (
+        {statusAssinatura === 'active' && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-50">
             <NavLink href="/app/plano" icon="💳" label="Gerenciar assinatura" sub="Trocar plano, cancelar, histórico de pagamentos" />
           </div>

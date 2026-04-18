@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
           session.subscription as string
         )
 
-        await atualizarSubscription(userId, subscription, 'ativo')
+        await atualizarSubscription(userId, subscription, 'active')
         console.log('[Webhook] Assinatura criada para user:', userId)
         break
       }
@@ -106,9 +106,9 @@ export async function POST(req: NextRequest) {
         const userId = subscription.metadata?.supabase_user_id
         if (!userId) break
 
-        const status = subscription.status === 'active' ? 'ativo'
-          : subscription.status === 'past_due' ? 'inadimplente'
-          : subscription.status === 'canceled' ? 'cancelado'
+        const status = subscription.status === 'active' ? 'active'
+          : subscription.status === 'past_due' ? 'expired'
+          : subscription.status === 'canceled' ? 'cancelled'
           : subscription.status
 
         await atualizarSubscription(userId, subscription, status)
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
         await supabaseAdmin
           .from('subscriptions')
           .update({
-            status: 'cancelado',
+            status: 'cancelled',
             ends_at: new Date().toISOString(),
           })
           .eq('user_id', userId)

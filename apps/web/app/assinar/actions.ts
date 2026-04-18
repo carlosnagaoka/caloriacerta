@@ -168,7 +168,7 @@ export async function resgatarCortesia(code: string): Promise<{
         .from('subscriptions')
         .update({
           plan_id: plan.id,
-          status: 'ativo',
+          status: 'active',
           ends_at: expiresAtISO,
           updated_at: new Date().toISOString(),
         })
@@ -184,7 +184,7 @@ export async function resgatarCortesia(code: string): Promise<{
         .insert({
           user_id: user.id,
           plan_id: plan.id,
-          status: 'ativo',
+          status: 'active',
           starts_at: new Date().toISOString(),
           ends_at: expiresAtISO,
         })
