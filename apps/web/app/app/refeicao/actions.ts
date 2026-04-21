@@ -168,12 +168,23 @@ export async function atualizarRefeicao(
     name: string
     weight: number
     caloriesPer100g: number
-  }>
+    proteinGrams?: number
+    carbsGrams?: number
+    fatGrams?: number
+  }>,
+  meta?: { mealType?: string; mealTime?: string }
 ) {
   try {
     const totalCalories = items.reduce((sum, item) => {
       return sum + Math.round((item.weight * item.caloriesPer100g) / 100)
     }, 0)
+
+    // Atualiza campos da refeição (tipo, hora, total)
+    const mealUpdate: Record<string, any> = { total_calories: totalCalories }
+    if (meta?.mealType) mealUpdate.meal_type = meta.mealType
+    if (meta?.mealTime) mealUpdate.meal_time = meta.mealTime
+
+    await supabaseAdmin.from('meals').update(mealUpdate).eq('id', mealId)
 
     // Apaga os itens antigos e insere os novos
     const { error: deleteError } = await supabaseAdmin
@@ -194,6 +205,9 @@ export async function atualizarRefeicao(
         weight_grams: item.weight,
         calories_per_100g: item.caloriesPer100g,
         total_calories: Math.round((item.weight * item.caloriesPer100g) / 100),
+        ...(item.proteinGrams != null && { protein_grams: item.proteinGrams }),
+        ...(item.carbsGrams   != null && { carbs_grams:   item.carbsGrams }),
+        ...(item.fatGrams     != null && { fat_grams:     item.fatGrams }),
       }))
 
       const { error: insertError } = await supabaseAdmin
@@ -205,12 +219,6 @@ export async function atualizarRefeicao(
         return { success: false, error: insertError.message }
       }
     }
-
-    // Atualiza o total da refeição
-    await supabaseAdmin
-      .from('meals')
-      .update({ total_calories: totalCalories })
-      .eq('id', mealId)
 
     revalidatePath('/app/dashboard')
     revalidatePath('/app/historico')

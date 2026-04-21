@@ -17,7 +17,9 @@ interface EditItem {
 
 interface EditMealModalProps {
   mealId: string
-  mealLabel: string   // ex: "Almoço · 12:30"
+  mealLabel: string
+  initialMealType: string
+  initialMealTime: string
   initialItems: Array<{
     id?: string
     food_id?: string
@@ -37,7 +39,10 @@ const mealTypeLabel: Record<string, string> = {
   outro: 'Outro',
 }
 
-export default function EditMealModal({ mealId, mealLabel, initialItems, onClose }: EditMealModalProps) {
+export default function EditMealModal({ mealId, mealLabel, initialMealType, initialMealTime, initialItems, onClose }: EditMealModalProps) {
+  const [mealType, setMealType] = useState(initialMealType)
+  const [mealTime, setMealTime] = useState(initialMealTime)
+
   const [items, setItems] = useState<EditItem[]>(
     initialItems.map(i => ({
       id: Math.random().toString(36).substr(2, 9),
@@ -158,7 +163,8 @@ export default function EditMealModal({ mealId, mealLabel, initialItems, onClose
         name: i.name,
         weight: i.weight,
         caloriesPer100g: i.caloriesPer100g,
-      }))
+      })),
+      { mealType, mealTime }
     )
     setSaving(false)
     if (!result.success) { setError(result.error || 'Erro ao salvar.'); return }
@@ -202,6 +208,33 @@ export default function EditMealModal({ mealId, mealLabel, initialItems, onClose
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{error}</div>
         )}
+
+        {/* Tipo e Hora da refeição */}
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Tipo de refeição</label>
+            <select
+              value={mealType}
+              onChange={e => setMealType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
+            >
+              <option value="cafe_da_manha">🌅 Café da Manhã</option>
+              <option value="almoco">☀️ Almoço</option>
+              <option value="jantar">🌙 Jantar</option>
+              <option value="lanche">🍎 Lanche</option>
+              <option value="outro">🍽️ Outro</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Hora</label>
+            <input
+              type="time"
+              value={mealTime}
+              onChange={e => setMealTime(e.target.value)}
+              className="w-28 px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-green-400"
+            />
+          </div>
+        </div>
 
         {/* Lista de itens */}
         {items.map(item => (
