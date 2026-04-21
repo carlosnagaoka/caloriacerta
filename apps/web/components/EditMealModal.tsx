@@ -364,10 +364,19 @@ export default function EditMealModal({ mealId, mealLabel, initialMealType, init
         </div>
       </div>
 
-      {/* Footer: total */}
-      <div className="px-4 py-3 border-t border-gray-100 bg-white flex items-center justify-between">
-        <span className="text-sm text-gray-500">Total da refeição</span>
-        <span className="text-xl font-bold text-green-600">{totalCalories} kcal</span>
+      {/* Footer: total + botão salvar */}
+      <div className="px-4 py-3 border-t border-gray-100 bg-white space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-500">Total da refeição</span>
+          <span className="text-xl font-bold text-green-600">{totalCalories} kcal</span>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving || items.length === 0}
+          className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl disabled:opacity-40 transition-all active:scale-95"
+        >
+          {saving ? 'Salvando...' : 'Salvar alterações'}
+        </button>
       </div>
     </div>
   )
