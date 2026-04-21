@@ -11,6 +11,7 @@ import SmartMessageCard from '@/components/SmartMessageCard'
 import CorrectionCard from '@/components/CorrectionCard'
 import PatternInsightCard from '@/components/PatternInsightCard'
 import EditMealModal from '@/components/EditMealModal'
+import MacrosDetailCard from '@/components/MacrosDetailCard'
 import type { SmartMessage } from '@/lib/behavior/messageEngine'
 import type { PatternInsight } from '@/lib/behavior/patternEngine'
 import type { Correction } from '@/lib/behavior/correctionEngine'
@@ -70,27 +71,6 @@ function CalorieRing({ consumed, goal }: { consumed: number; goal: number }) {
         <span className={`text-xs font-medium mt-0.5 ${over ? 'text-red-500' : 'text-green-500'}`}>
           {over ? `+${consumed - goal} acima` : `${remaining} restam`}
         </span>
-      </div>
-    </div>
-  )
-}
-
-// ─── Macro Bar ────────────────────────────────────────────────────────────────
-function MacroBar({ label, value, max, color, unit = 'g' }: {
-  label: string; value: number; max: number; color: string; unit?: string
-}) {
-  const pct = Math.min((value / max) * 100, 100)
-  return (
-    <div className="flex-1 min-w-0">
-      <div className="flex justify-between items-baseline mb-1">
-        <span className="text-xs font-medium text-gray-500">{label}</span>
-        <span className="text-xs font-bold text-gray-700">{value}{unit}</span>
-      </div>
-      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-        <div
-          className={`h-2 rounded-full transition-all duration-500 ${color}`}
-          style={{ width: `${pct}%` }}
-        />
       </div>
     </div>
   )
@@ -308,20 +288,32 @@ export default function DashboardClient({
           />
         )}
 
-        {/* ── Calorie ring + macros ───────────────────────────────────────────── */}
+        {/* ── Calorie ring ────────────────────────────────────────────────────── */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center justify-center gap-6">
             <CalorieRing consumed={totalHoje} goal={meta} />
-            <div className="flex-1 space-y-3">
-              <div className="text-center mb-3">
-                <span className="text-xs text-secondary">Meta: <strong className="text-gray-700">{meta} kcal</strong></span>
-              </div>
-              <MacroBar label="Carbs" value={totalCarbs} max={carbMeta} color="bg-amber-400" />
-              <MacroBar label="Proteína" value={totalProt} max={protMeta} color="bg-blue-400" />
-              <MacroBar label="Gordura" value={totalFat} max={fatMeta} color="bg-pink-400" />
+            <div className="text-center">
+              <p className="text-xs text-gray-400 mb-1">Meta diária</p>
+              <p className="text-2xl font-bold text-gray-900">{meta}<span className="text-sm font-normal text-gray-400"> kcal</span></p>
+              <p className={`text-sm font-semibold mt-1 ${totalHoje > meta ? 'text-red-500' : 'text-green-600'}`}>
+                {totalHoje > meta
+                  ? `+${totalHoje - meta} acima`
+                  : `${meta - totalHoje} restam`}
+              </p>
             </div>
           </div>
         </div>
+
+        {/* ── Macros detalhados ────────────────────────────────────────────────── */}
+        <MacrosDetailCard
+          meals={meals}
+          totalProt={totalProt}
+          totalCarbs={totalCarbs}
+          totalFat={totalFat}
+          protMeta={protMeta}
+          carbMeta={carbMeta}
+          fatMeta={fatMeta}
+        />
 
         {/* ── Missão da semana (CorrectionCard) ───────────────────────────────
              Abaixo do anel: uma correção, específica, acionável */}
@@ -467,13 +459,25 @@ export default function DashboardClient({
                       </button>
 
                       {isExpanded && meal.meal_items && meal.meal_items.length > 0 && (
-                        <ul className="mt-2 space-y-1.5 border-t border-gray-50 pt-2">
-                          {meal.meal_items.map((item: any, i: number) => (
-                            <li key={i} className="flex justify-between text-sm">
-                              <span className="text-gray-700">{item.item_name} <span className="text-gray-400">({item.weight_grams}g)</span></span>
-                              <span className="text-gray-500 font-medium">{item.total_calories} kcal</span>
-                            </li>
-                          ))}
+                        <ul className="mt-2 space-y-2 border-t border-gray-50 pt-2">
+                          {meal.meal_items.map((item: any, i: number) => {
+                            const ip = item.protein_grams != null ? Math.round(item.protein_grams) : Math.round((item.total_calories * 0.25) / 4)
+                            const ic = item.carbs_grams   != null ? Math.round(item.carbs_grams)   : Math.round((item.total_calories * 0.50) / 4)
+                            const ig = item.fat_grams     != null ? Math.round(item.fat_grams)     : Math.round((item.total_calories * 0.25) / 9)
+                            return (
+                              <li key={i} className="text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-700">{item.item_name} <span className="text-gray-400">({item.weight_grams}g)</span></span>
+                                  <span className="text-gray-500 font-medium">{item.total_calories} kcal</span>
+                                </div>
+                                <div className="flex gap-3 mt-0.5 text-xs text-gray-400">
+                                  <span className="text-blue-400">P: {ip}g</span>
+                                  <span className="text-amber-400">C: {ic}g</span>
+                                  <span className="text-pink-400">G: {ig}g</span>
+                                </div>
+                              </li>
+                            )
+                          })}
                         </ul>
                       )}
 

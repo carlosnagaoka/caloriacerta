@@ -26,6 +26,9 @@ export async function salvarRefeicao(formData: {
     name: string
     weight: number
     caloriesPer100g: number
+    proteinGrams?: number
+    carbsGrams?: number
+    fatGrams?: number
   }>
 }) {
   console.log('[Refeicao Action] Salvando para user:', formData.userId)
@@ -104,6 +107,9 @@ export async function salvarRefeicao(formData: {
       weight_grams: item.weight,
       calories_per_100g: item.caloriesPer100g,
       total_calories: Math.round((item.weight * item.caloriesPer100g) / 100),
+      ...(item.proteinGrams != null && { protein_grams: item.proteinGrams }),
+      ...(item.carbsGrams   != null && { carbs_grams:   item.carbsGrams }),
+      ...(item.fatGrams     != null && { fat_grams:     item.fatGrams }),
     }))
 
     const { error: itemsError } = await supabaseAdmin

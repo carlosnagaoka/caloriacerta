@@ -9,8 +9,10 @@ import { estimarCalorias } from '@/app/app/refeicao/estimate-calories'
 import { createClient } from '@/lib/supabase-client'
 import dynamic from 'next/dynamic'
 import type { FoodFromBarcode } from '@/app/app/refeicao/barcode-lookup'
+import type { LabelItem } from '@/components/ScanRotuloModal'
 
-const BarcodeScanner = dynamic(() => import('@/components/BarcodeScanner'), { ssr: false })
+const BarcodeScanner   = dynamic(() => import('@/components/BarcodeScanner'),   { ssr: false })
+const ScanRotuloModal  = dynamic(() => import('@/components/ScanRotuloModal'),  { ssr: false })
 
 interface MealItem {
   id: string
@@ -20,6 +22,13 @@ interface MealItem {
   caloriesPer100g: number
   totalCalories: number
   country?: string
+  // Macros (from label scan or barcode)
+  proteinPer100g?: number
+  carbsPer100g?: number
+  fatPer100g?: number
+  proteinGrams?: number
+  carbsGrams?: number
+  fatGrams?: number
 }
 
 export default function MealForm({ userId }: { userId: string }) {
@@ -55,6 +64,7 @@ export default function MealForm({ userId }: { userId: string }) {
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false)
   const [estimatingId, setEstimatingId] = useState<string | null>(null)
   const [showScanner, setShowScanner] = useState(false)
+  const [showScanRotulo, setShowScanRotulo] = useState(false)
   const [error, setError] = useState('')
 
   // Upload de foto para Supabase Storage
@@ -155,12 +165,19 @@ export default function MealForm({ userId }: { userId: string }) {
     setFocusItemId(id)
   }
 
-  // Atualizar peso do item
+  // Atualizar peso do item (recalcula calorias + macros proporcionalmente)
   const updateItemWeight = (id: string, weight: number) => {
     setItems(items.map(item => {
       if (item.id === id) {
         const totalCalories = Math.round((weight * item.caloriesPer100g) / 100)
-        return { ...item, weight, totalCalories }
+        return {
+          ...item,
+          weight,
+          totalCalories,
+          proteinGrams: item.proteinPer100g != null ? Math.round((item.proteinPer100g * weight) / 100) : item.proteinGrams,
+          carbsGrams:   item.carbsPer100g   != null ? Math.round((item.carbsPer100g   * weight) / 100) : item.carbsGrams,
+          fatGrams:     item.fatPer100g     != null ? Math.round((item.fatPer100g     * weight) / 100) : item.fatGrams,
+        }
       }
       return item
     }))
@@ -222,6 +239,30 @@ export default function MealForm({ userId }: { userId: string }) {
       caloriesPer100g: food.caloriesPer100g,
       totalCalories: food.caloriesPer100g,
       country: food.country,
+      proteinPer100g: food.proteinPer100g,
+      carbsPer100g:   food.carbsPer100g,
+      fatPer100g:     food.fatPer100g,
+      proteinGrams:   food.proteinPer100g,
+      carbsGrams:     food.carbsPer100g,
+      fatGrams:       food.fatPer100g,
+    }
+    setItems((prev) => [...prev, newItem])
+  }
+
+  // Adicionar item via scanner de rótulo japonês
+  const handleLabelItem = (label: LabelItem) => {
+    const newItem: MealItem = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: label.name,
+      weight: label.weight,
+      caloriesPer100g: label.caloriesPer100g,
+      totalCalories:   label.totalCalories,
+      proteinPer100g:  label.proteinPer100g,
+      carbsPer100g:    label.carbsPer100g,
+      fatPer100g:      label.fatPer100g,
+      proteinGrams:    label.proteinGrams,
+      carbsGrams:      label.carbsGrams,
+      fatGrams:        label.fatGrams,
     }
     setItems((prev) => [...prev, newItem])
   }
@@ -254,10 +295,13 @@ export default function MealForm({ userId }: { userId: string }) {
       photoUrl,
       notes,
       items: items.map(item => ({
-        foodId: item.foodId,
-        name: item.name,
-        weight: item.weight,
+        foodId:       item.foodId,
+        name:         item.name,
+        weight:       item.weight,
         caloriesPer100g: item.caloriesPer100g,
+        proteinGrams: item.proteinGrams,
+        carbsGrams:   item.carbsGrams,
+        fatGrams:     item.fatGrams,
       })),
     })
 
@@ -380,11 +424,19 @@ export default function MealForm({ userId }: { userId: string }) {
         )}
       </div>
 
-      {/* Scanner modal */}
+      {/* Barcode scanner modal */}
       {showScanner && (
         <BarcodeScanner
           onFood={handleBarcodeFood}
           onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {/* Japanese label scanner modal */}
+      {showScanRotulo && (
+        <ScanRotuloModal
+          onAdd={handleLabelItem}
+          onClose={() => setShowScanRotulo(false)}
         />
       )}
 
@@ -409,6 +461,14 @@ export default function MealForm({ userId }: { userId: string }) {
             title="Escanear código de barras"
           >
             📷 Código
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowScanRotulo(true)}
+            className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-1 text-sm"
+            title="Escanear rótulo japonês"
+          >
+            🇯🇵 Rótulo
           </button>
           <button
             type="button"
@@ -447,9 +507,14 @@ export default function MealForm({ userId }: { userId: string }) {
               <div key={item.id} className="flex flex-col gap-2 bg-white p-3 rounded border">
                 <div className="flex items-center gap-3">
                   <div className="flex-1 relative">
-                    <div className="flex items-center gap-1 mb-0.5">
+                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                       {item.country === 'JP' && <span title="Produto japonês">🇯🇵</span>}
                       {item.country === 'BR' && <span title="Produto brasileiro">🇧🇷</span>}
+                      {item.proteinGrams != null && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-blue-50 text-blue-500 rounded-full">
+                          P{item.proteinGrams}g C{item.carbsGrams}g G{item.fatGrams}g
+                        </span>
+                      )}
                     </div>
                     <input
                       type="text"

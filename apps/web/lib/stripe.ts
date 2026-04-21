@@ -1,6 +1,9 @@
 import Stripe from 'stripe'
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+// Guard for build-time: STRIPE_SECRET_KEY not available during static generation
+const key = process.env.STRIPE_SECRET_KEY ?? 'sk_placeholder_build_only'
+
+export const stripe = new Stripe(key, {
   apiVersion: '2025-02-24.acacia',
 })
 
