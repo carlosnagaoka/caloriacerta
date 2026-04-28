@@ -180,6 +180,7 @@ export default function DashboardClient({
         mealLabel={`${mealTypeLabel[editingMeal.meal_type] || editingMeal.meal_type} · ${editingMeal.meal_time?.slice(0, 5) || ''}`}
         initialMealType={editingMeal.meal_type || 'outro'}
         initialMealTime={editingMeal.meal_time?.slice(0, 5) || ''}
+        userId={profile?.id || ''}
         initialItems={editingMeal.meal_items || []}
         onClose={() => { setEditingMeal(null); router.refresh() }}
       />

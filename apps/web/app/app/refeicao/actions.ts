@@ -260,3 +260,86 @@ export async function buscarAlimentos(busca: string) {
 
   return data || []
 }
+
+// Busca combinada: banco global + histórico pessoal do usuário
+// O histórico tem prioridade e aparece primeiro na lista
+export async function buscarAlimentosComHistorico(busca: string, userId: string) {
+  if (busca.length < 2) return []
+
+  // 1. Banco global de alimentos
+  const { data: globalFoods } = await supabaseAdmin
+    .from('foods')
+    .select('id, name, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, category')
+    .ilike('name', `%${busca}%`)
+    .limit(8)
+
+  // 2. Histórico pessoal: refeições deste usuário
+  //    Busca os meal_ids do usuário primeiro
+  const { data: userMeals } = await supabaseAdmin
+    .from('meals')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(2000)
+
+  const mealIds = (userMeals || []).map(m => m.id)
+
+  let historyItems: any[] = []
+  if (mealIds.length > 0) {
+    const { data: rawHistory } = await supabaseAdmin
+      .from('meal_items')
+      .select('item_name, calories_per_100g, protein_grams, carbs_grams, fat_grams, weight_grams')
+      .in('meal_id', mealIds)
+      .ilike('item_name', `%${busca}%`)
+      .gt('calories_per_100g', 0)
+      .limit(100)
+
+    // Agrupa por nome e calcula média de kcal/100g + frequência
+    const grouped: Record<string, {
+      name: string
+      calSamples: number[]
+      protSamples: number[]
+      carbsSamples: number[]
+      fatSamples: number[]
+      frequency: number
+    }> = {}
+
+    for (const item of rawHistory || []) {
+      const key = item.item_name.toLowerCase().trim()
+      if (!grouped[key]) {
+        grouped[key] = { name: item.item_name, calSamples: [], protSamples: [], carbsSamples: [], fatSamples: [], frequency: 0 }
+      }
+      grouped[key].frequency++
+      if (item.calories_per_100g > 0) grouped[key].calSamples.push(item.calories_per_100g)
+      // Se tem macros reais, normaliza para per100g
+      if (item.protein_grams != null && item.weight_grams > 0)
+        grouped[key].protSamples.push((item.protein_grams / item.weight_grams) * 100)
+      if (item.carbs_grams != null && item.weight_grams > 0)
+        grouped[key].carbsSamples.push((item.carbs_grams / item.weight_grams) * 100)
+      if (item.fat_grams != null && item.weight_grams > 0)
+        grouped[key].fatSamples.push((item.fat_grams / item.weight_grams) * 100)
+    }
+
+    const avg = (arr: number[]) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0
+
+    historyItems = Object.values(grouped)
+      .sort((a, b) => b.frequency - a.frequency)
+      .slice(0, 6)
+      .map(g => ({
+        id: undefined,
+        name: g.name,
+        calories_per_100g: avg(g.calSamples),
+        protein_per_100g: avg(g.protSamples) || undefined,
+        carbs_per_100g: avg(g.carbsSamples) || undefined,
+        fat_per_100g: avg(g.fatSamples) || undefined,
+        category: null,
+        fromHistory: true,
+        frequency: g.frequency,
+      }))
+  }
+
+  // Mescla: histórico primeiro, depois banco global (sem duplicatas por nome)
+  const historyNames = new Set(historyItems.map(i => i.name.toLowerCase()))
+  const dedupedGlobal = (globalFoods || []).filter(f => !historyNames.has(f.name.toLowerCase()))
+
+  return [...historyItems, ...dedupedGlobal]
+}

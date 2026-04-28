@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { atualizarRefeicao, buscarAlimentos } from '@/app/app/refeicao/actions'
+import { atualizarRefeicao, buscarAlimentosComHistorico } from '@/app/app/refeicao/actions'
 import { estimarCalorias } from '@/app/app/refeicao/estimate-calories'
 import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 
@@ -20,6 +20,7 @@ interface EditMealModalProps {
   mealLabel: string
   initialMealType: string
   initialMealTime: string
+  userId: string
   initialItems: Array<{
     id?: string
     food_id?: string
@@ -39,7 +40,7 @@ const mealTypeLabel: Record<string, string> = {
   outro: 'Outro',
 }
 
-export default function EditMealModal({ mealId, mealLabel, initialMealType, initialMealTime, initialItems, onClose }: EditMealModalProps) {
+export default function EditMealModal({ mealId, mealLabel, initialMealType, initialMealTime, userId, initialItems, onClose }: EditMealModalProps) {
   const [mealType, setMealType] = useState(initialMealType)
   const [mealTime, setMealTime] = useState(initialMealTime)
 
@@ -69,11 +70,11 @@ export default function EditMealModal({ mealId, mealLabel, initialMealType, init
 
   const totalCalories = items.reduce((s, i) => s + i.totalCalories, 0)
 
-  // ── Busca global ──────────────────────────────────────────────────────────
+  // ── Busca global (banco + histórico pessoal) ─────────────────────────────
   const handleSearch = async (term: string) => {
     setSearchTerm(term)
     if (term.length < 2) { setSearchResults([]); return }
-    const results = await buscarAlimentos(term)
+    const results = await buscarAlimentosComHistorico(term, userId)
     setSearchResults(results)
   }
 
@@ -120,20 +121,30 @@ export default function EditMealModal({ mealId, mealLabel, initialMealType, init
       setItemSearchVisible(prev => ({ ...prev, [id]: false }))
       return
     }
-    const results = await buscarAlimentos(name)
+    const results = await buscarAlimentosComHistorico(name, userId)
     setItemSearchResults(prev => ({ ...prev, [id]: results }))
     setItemSearchVisible(prev => ({ ...prev, [id]: results.length > 0 }))
+
+    // Auto-preenche se houver match exato com kcal zerado
+    const exact = results.find(r => r.name.toLowerCase() === name.toLowerCase() && r.calories_per_100g > 0)
+    if (exact) {
+      setItems(prev => prev.map(i => {
+        if (i.id !== id || i.caloriesPer100g > 0) return i
+        return { ...i, caloriesPer100g: exact.calories_per_100g, totalCalories: Math.round((i.weight * exact.calories_per_100g) / 100) }
+      }))
+    }
   }
 
   const selectSuggestion = (id: string, food: any) => {
     setItems(prev => prev.map(i => {
       if (i.id !== id) return i
+      const cal = food.calories_per_100g
       return {
         ...i,
         name: food.name,
         foodId: food.id,
-        caloriesPer100g: food.calories_per_100g,
-        totalCalories: Math.round((i.weight * food.calories_per_100g) / 100),
+        caloriesPer100g: cal,
+        totalCalories: Math.round((i.weight * cal) / 100),
       }
     }))
     setItemSearchVisible(prev => ({ ...prev, [id]: false }))
@@ -251,16 +262,22 @@ export default function EditMealModal({ mealId, mealLabel, initialMealType, init
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-900 bg-white"
               />
               {itemSearchVisible[item.id] && (itemSearchResults[item.id] || []).length > 0 && (
-                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-40 overflow-auto">
-                  {itemSearchResults[item.id].map(food => (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-auto">
+                  {itemSearchResults[item.id].map((food, i) => (
                     <button
-                      key={food.id}
+                      key={food.id ?? `h-${i}`}
                       type="button"
                       onMouseDown={() => selectSuggestion(item.id, food)}
-                      className="w-full px-3 py-2 text-left hover:bg-green-50 flex justify-between text-sm"
+                      className="w-full px-3 py-2 text-left hover:bg-green-50 flex items-center justify-between text-sm border-b border-gray-50 last:border-0"
                     >
-                      <span>{food.name}</span>
-                      <span className="text-gray-400 text-xs">{food.calories_per_100g} kcal/100g</span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {food.fromHistory && <span className="text-xs">📌</span>}
+                        <span className="truncate text-gray-800">{food.name}</span>
+                        {food.fromHistory && food.frequency > 1 && (
+                          <span className="text-[10px] text-green-600 bg-green-50 px-1 py-0.5 rounded-full flex-shrink-0">{food.frequency}×</span>
+                        )}
+                      </div>
+                      <span className="text-gray-400 text-xs flex-shrink-0 ml-2">{food.calories_per_100g} kcal/100g</span>
                     </button>
                   ))}
                 </div>
@@ -348,15 +365,21 @@ export default function EditMealModal({ mealId, mealLabel, initialMealType, init
 
           {searchResults.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm max-h-48 overflow-auto">
-              {searchResults.map(food => (
+              {searchResults.map((food, i) => (
                 <button
-                  key={food.id}
+                  key={food.id ?? `h-${i}`}
                   type="button"
                   onClick={() => addFromSearch(food)}
-                  className="w-full px-4 py-2.5 text-left hover:bg-green-50 flex justify-between text-sm border-b border-gray-50 last:border-0"
+                  className="w-full px-4 py-2.5 text-left hover:bg-green-50 flex items-center justify-between text-sm border-b border-gray-50 last:border-0"
                 >
-                  <span className="text-gray-800">{food.name}</span>
-                  <span className="text-gray-400 text-xs">{food.calories_per_100g} kcal/100g</span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {food.fromHistory && <span className="text-xs">📌</span>}
+                    <span className="text-gray-800 truncate">{food.name}</span>
+                    {food.fromHistory && food.frequency > 1 && (
+                      <span className="text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full flex-shrink-0">{food.frequency}×</span>
+                    )}
+                  </div>
+                  <span className="text-gray-400 text-xs flex-shrink-0 ml-2">{food.calories_per_100g} kcal/100g</span>
                 </button>
               ))}
             </div>
