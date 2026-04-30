@@ -117,13 +117,14 @@ export default function DashboardClient({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [expandedMeal, setExpandedMeal] = useState<string | null>(null)
   const [editingMeal, setEditingMeal] = useState<any | null>(null)
+  const [confirmDeleteMeal, setConfirmDeleteMeal] = useState<{ id: string; label: string } | null>(null)
 
   // Usa IC calculado pelo engine (mais preciso que o armazenado no perfil)
   const icScore = icResult.score
 
   const handleDelete = async (mealId: string) => {
-    if (!confirm('Excluir esta refeição?')) return
     setDeletingId(mealId)
+    setConfirmDeleteMeal(null)
     await excluirRefeicao(mealId)
     router.refresh()
     setDeletingId(null)
@@ -492,7 +493,10 @@ export default function DashboardClient({
                           ✏️ Editar
                         </button>
                         <button
-                          onClick={() => handleDelete(meal.id)}
+                          onClick={() => setConfirmDeleteMeal({
+                            id: meal.id,
+                            label: `${mealTypeIcon[meal.meal_type] || '🍽️'} ${mealTypeLabel[meal.meal_type] || 'Refeição'} · ${meal.total_calories || 0} kcal`
+                          })}
                           disabled={deletingId === meal.id}
                           className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40 font-medium btn-focus-compact"
                         >
@@ -510,6 +514,61 @@ export default function DashboardClient({
 
       {/* FAB removido — agora está na BottomNav central */}
     </main>
+
+    {/* ── Modal de confirmação de exclusão ───────────────────────────────── */}
+    {confirmDeleteMeal && (
+      <div
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-delete-title"
+      >
+        {/* Overlay */}
+        <div
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={() => setConfirmDeleteMeal(null)}
+        />
+
+        {/* Card */}
+        <div className="relative z-10 w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl shadow-xl p-6 flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-200">
+          {/* Ícone + título */}
+          <div className="flex flex-col items-center gap-2 text-center">
+            <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-3xl select-none">
+              🗑️
+            </div>
+            <h2 id="confirm-delete-title" className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+              Excluir refeição?
+            </h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-snug">
+              Você está prestes a excluir:
+            </p>
+            <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 rounded-lg px-3 py-1.5">
+              {confirmDeleteMeal.label}
+            </span>
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+              Esta ação não pode ser desfeita.
+            </p>
+          </div>
+
+          {/* Botões */}
+          <div className="flex gap-3 mt-1">
+            <button
+              onClick={() => setConfirmDeleteMeal(null)}
+              className="flex-1 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => handleDelete(confirmDeleteMeal.id)}
+              disabled={deletingId === confirmDeleteMeal.id}
+              className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-sm font-semibold text-white transition-colors"
+            >
+              {deletingId === confirmDeleteMeal.id ? 'Excluindo…' : 'Sim, excluir'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   )
 }
