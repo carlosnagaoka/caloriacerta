@@ -171,9 +171,10 @@ export default function MealForm({ userId }: { userId: string }) {
 
   // Atualizar peso do item (recalcula calorias + macros proporcionalmente)
   const updateItemWeight = (id: string, weight: number) => {
-    setItems(items.map(item => {
+    if (isNaN(weight) || weight < 0) return  // ignora clearing temporário
+    setItems(prev => prev.map(item => {
       if (item.id === id) {
-        const totalCalories = Math.round((weight * item.caloriesPer100g) / 100)
+        const totalCalories = Math.round((weight * (item.caloriesPer100g ?? 0)) / 100)
         return {
           ...item,
           weight,
@@ -625,10 +626,10 @@ export default function MealForm({ userId }: { userId: string }) {
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
-                      value={item.weight}
-                      onChange={(e) => updateItemWeight(item.id, parseFloat(e.target.value) || 0)}
+                      value={item.weight || ''}
+                      onChange={(e) => updateItemWeight(item.id, parseFloat(e.target.value))}
                       className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-gray-900 bg-white"
-                      min="0"
+                      min="1"
                       step="1"
                     />
                     <span className="text-sm text-gray-500">g</span>

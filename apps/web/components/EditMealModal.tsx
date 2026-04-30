@@ -103,12 +103,14 @@ export default function EditMealModal({ mealId, mealLabel, initialMealType, init
 
   // ── Edição de item ────────────────────────────────────────────────────────
   const updateWeight = (id: string, weight: number) => {
+    if (isNaN(weight) || weight < 0) return  // ignora clearing temporário do input
     setItems(prev => prev.map(i => i.id !== id ? i : {
-      ...i, weight, totalCalories: Math.round((weight * i.caloriesPer100g) / 100)
+      ...i, weight, totalCalories: Math.round((weight * (i.caloriesPer100g ?? 0)) / 100)
     }))
   }
 
   const updateCalories = (id: string, caloriesPer100g: number) => {
+    if (isNaN(caloriesPer100g) || caloriesPer100g < 0) return
     setItems(prev => prev.map(i => i.id !== id ? i : {
       ...i, caloriesPer100g, totalCalories: Math.round((i.weight * caloriesPer100g) / 100)
     }))
@@ -290,10 +292,10 @@ export default function EditMealModal({ mealId, mealLabel, initialMealType, init
               <div className="flex items-center gap-1">
                 <input
                   type="number"
-                  value={item.weight}
-                  onChange={e => updateWeight(item.id, parseFloat(e.target.value) || 0)}
+                  value={item.weight || ''}
+                  onChange={e => updateWeight(item.id, parseFloat(e.target.value))}
                   className="w-16 px-2 py-1 border border-gray-200 rounded-lg text-sm text-center text-gray-900 bg-white"
-                  min="0"
+                  min="1"
                 />
                 <span className="text-xs text-gray-400">g</span>
               </div>
@@ -306,9 +308,9 @@ export default function EditMealModal({ mealId, mealLabel, initialMealType, init
                   type="number"
                   value={item.caloriesPer100g || ''}
                   placeholder="0"
-                  onChange={e => updateCalories(item.id, parseFloat(e.target.value) || 0)}
+                  onChange={e => updateCalories(item.id, parseFloat(e.target.value))}
                   className={`w-16 px-2 py-1 border rounded-lg text-xs text-center text-gray-900 bg-white ${
-                    item.caloriesPer100g === 0 ? 'border-red-300' : 'border-gray-200'
+                    !item.caloriesPer100g ? 'border-red-300' : 'border-gray-200'
                   }`}
                   min="0"
                 />
@@ -316,7 +318,7 @@ export default function EditMealModal({ mealId, mealLabel, initialMealType, init
               </div>
 
               {/* Estimar IA */}
-              {item.caloriesPer100g === 0 && (
+              {!item.caloriesPer100g && (
                 <button
                   type="button"
                   onClick={() => handleEstimar(item.id, item.name)}
