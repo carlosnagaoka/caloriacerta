@@ -1,14 +1,14 @@
-// CaloriaCerta Service Worker
+// CaloriaCerta Service Worker v3
 // Strategy:
-//   /_next/static/*  → Cache-first (immutable hashed files)
-//   /api/*           → Network-only (never cache)
+//   /_next/static/*  → Cache-first (imutável, hashed)
+//   pages HTML       → Network-only (NUNCA cachear HTML — referencia chunk hashes novos a cada deploy)
 //   images/icons     → Cache-first
-//   pages            → Network-first with cache fallback + offline page
+//   /api/*           → Pass-through
+//   offline fallback → /offline (somente quando sem rede)
 
-const CACHE_VERSION = 'v2'
+const CACHE_VERSION = 'v3'
 const STATIC_CACHE  = `cc-static-${CACHE_VERSION}`
-const PAGES_CACHE   = `cc-pages-${CACHE_VERSION}`
-const ALL_CACHES    = [STATIC_CACHE, PAGES_CACHE]
+const ALL_CACHES    = [STATIC_CACHE]
 
 const PRECACHE = [
   '/offline',
@@ -23,12 +23,12 @@ const PRECACHE = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(STATIC_CACHE)
-      .then(cache => cache.addAll(PRECACHE))
+      .then(cache => cache.addAll(PRECACHE).catch(() => {})) // ignora falhas de pré-cache
       .then(() => self.skipWaiting())
   )
 })
 
-// ── Activate — purge old caches ──────────────────────────────────────────────
+// ── Activate — limpa caches velhos ───────────────────────────────────────────
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
@@ -44,43 +44,44 @@ self.addEventListener('fetch', event => {
   const { request } = event
   const url = new URL(request.url)
 
-  // Only handle GET from our origin
+  // Somente GET do próprio domínio
   if (request.method !== 'GET') return
   if (url.origin !== location.origin) return
 
-  // Never cache API, auth, Supabase calls
-  if (url.pathname.startsWith('/api/')) return
-  if (url.pathname.startsWith('/auth/')) return
-  if (url.pathname.startsWith('/_next/data/')) return // RSC payloads → always fresh
+  // Nunca interceptar: API, auth, dados RSC
+  if (url.pathname.startsWith('/api/'))        return
+  if (url.pathname.startsWith('/auth/'))       return
+  if (url.pathname.startsWith('/_next/data/')) return
 
-  // Next.js static assets (hashed filenames) → cache-first forever
+  // Next.js static assets (hashed) → cache-first para sempre
   if (url.pathname.startsWith('/_next/static/')) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE))
+    event.respondWith(cacheFirst(request))
     return
   }
 
-  // Public images / icons / fonts → cache-first
+  // Imagens e fontes públicas → cache-first
   if (/\.(png|jpg|jpeg|svg|ico|webp|woff2?)$/.test(url.pathname)) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE))
+    event.respondWith(cacheFirst(request))
     return
   }
 
-  // All other navigations (pages) → network-first, fall back to cache then /offline
+  // Páginas HTML → SEMPRE buscar da rede. Offline: mostra /offline.
+  // Nunca cachear HTML porque os chunk hashes mudam a cada deploy.
   if (request.mode === 'navigate') {
-    event.respondWith(networkFirstNav(request))
+    event.respondWith(networkOnlyNav(request))
     return
   }
 })
 
-// ── Strategies ───────────────────────────────────────────────────────────────
-async function cacheFirst(request, cacheName) {
+// ── Estratégias ───────────────────────────────────────────────────────────────
+async function cacheFirst(request) {
   const cached = await caches.match(request)
   if (cached) return cached
 
   try {
     const response = await fetch(request)
     if (response.ok) {
-      const cache = await caches.open(cacheName)
+      const cache = await caches.open(STATIC_CACHE)
       cache.put(request, response.clone())
     }
     return response
@@ -89,16 +90,11 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
-async function networkFirstNav(request) {
-  const cache = await caches.open(PAGES_CACHE)
+async function networkOnlyNav(request) {
   try {
-    const response = await fetch(request)
-    if (response.ok) cache.put(request, response.clone())
-    return response
+    return await fetch(request)
   } catch {
-    const cached = await cache.match(request)
-    if (cached) return cached
-    // Generic offline fallback
+    // Sem rede → mostra página offline
     const offline = await caches.match('/offline')
     return offline || new Response('Você está offline', {
       status: 503,
