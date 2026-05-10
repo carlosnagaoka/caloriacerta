@@ -27,9 +27,10 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Renova o token de sessão se necessário.
-  // IMPORTANTE: não redirecionar aqui — deixar as páginas gerenciarem o auth.
-  await supabase.auth.getUser()
+  // getSession() lê o JWT do cookie sem chamada de rede externa.
+  // Evita MIDDLEWARE_INVOCATION_TIMEOUT no Vercel Edge (limite 1.5s).
+  // getUser() (verificação com o servidor) é feito no Server Component.
+  await supabase.auth.getSession()
 
   return supabaseResponse
 }
