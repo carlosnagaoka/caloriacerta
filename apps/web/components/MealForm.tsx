@@ -10,9 +10,11 @@ import { createClient } from '@/lib/supabase-client'
 import dynamic from 'next/dynamic'
 import type { FoodFromBarcode } from '@/app/app/refeicao/barcode-lookup'
 import type { LabelItem } from '@/components/ScanRotuloModal'
+import type { FotoItem } from '@/components/AnalisarFotoModal'
 
-const BarcodeScanner   = dynamic(() => import('@/components/BarcodeScanner'),   { ssr: false })
-const ScanRotuloModal  = dynamic(() => import('@/components/ScanRotuloModal'),  { ssr: false })
+const BarcodeScanner    = dynamic(() => import('@/components/BarcodeScanner'),    { ssr: false })
+const ScanRotuloModal   = dynamic(() => import('@/components/ScanRotuloModal'),   { ssr: false })
+const AnalisarFotoModal = dynamic(() => import('@/components/AnalisarFotoModal'), { ssr: false })
 
 interface MealItem {
   id: string
@@ -65,6 +67,7 @@ export default function MealForm({ userId }: { userId: string }) {
   const [estimatingId, setEstimatingId] = useState<string | null>(null)
   const [showScanner, setShowScanner] = useState(false)
   const [showScanRotulo, setShowScanRotulo] = useState(false)
+  const [showAnalisarFoto, setShowAnalisarFoto] = useState(false)
   const [error, setError] = useState('')
 
   // Upload de foto para Supabase Storage
@@ -284,6 +287,24 @@ export default function MealForm({ userId }: { userId: string }) {
     setItems((prev) => [...prev, newItem])
   }
 
+  // Adicionar itens detectados via foto (múltiplos de uma vez)
+  const handleFotoItems = (fotoItens: FotoItem[]) => {
+    const novos: MealItem[] = fotoItens.map(fi => ({
+      id:              Math.random().toString(36).substr(2, 9),
+      name:            fi.nome,
+      weight:          fi.pesoGramas,
+      caloriesPer100g: fi.caloriasPor100g,
+      totalCalories:   fi.totalKcal,
+      proteinPer100g:  fi.proteinaPor100g,
+      carbsPer100g:    fi.carbsPor100g,
+      fatPer100g:      fi.gorduraPor100g,
+      proteinGrams:    Math.round((fi.proteinaPor100g * fi.pesoGramas) / 100),
+      carbsGrams:      Math.round((fi.carbsPor100g    * fi.pesoGramas) / 100),
+      fatGrams:        Math.round((fi.gorduraPor100g  * fi.pesoGramas) / 100),
+    }))
+    setItems(prev => [...prev, ...novos])
+  }
+
   // Adicionar item via scanner de rótulo japonês
   const handleLabelItem = (label: LabelItem) => {
     const newItem: MealItem = {
@@ -475,6 +496,14 @@ export default function MealForm({ userId }: { userId: string }) {
         />
       )}
 
+      {/* Analisar foto da refeição */}
+      {showAnalisarFoto && (
+        <AnalisarFotoModal
+          onAdd={handleFotoItems}
+          onClose={() => setShowAnalisarFoto(false)}
+        />
+      )}
+
       {/* Busca de Alimentos */}
       <div className="relative">
         <label className="block text-sm font-medium text-gray-700">
@@ -504,6 +533,14 @@ export default function MealForm({ userId }: { userId: string }) {
             title="Escanear rótulo japonês"
           >
             🇯🇵 Rótulo
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAnalisarFoto(true)}
+            className="px-3 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 flex items-center gap-1 text-sm"
+            title="Analisar foto da refeição com IA"
+          >
+            📸 Foto
           </button>
           <button
             type="button"
